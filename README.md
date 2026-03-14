@@ -91,6 +91,18 @@ Use Sally in Cursor, Claude Desktop, or Windsurf:
 }
 ```
 
+## Privacy & Security
+
+Sally **never stores your code**. Your files are sent to Sally's backend for analysis, processed in-memory, and discarded. No code is retained, logged, or used for training.
+
+- Code is transmitted over HTTPS and analyzed in real-time
+- No source code is stored on our servers
+- Analysis results are tied to your anonymous device ID
+- SuperClub members can optionally link an email for account features
+- Use of this tool is at your own risk — Sally provides opinions, not guarantees
+
+For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
+
 ## License
 
 MIT
