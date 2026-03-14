@@ -28,7 +28,7 @@ sally login your@email.com
 sally usage
 ```
 
-SuperClub members get unlimited roasts. Free users get 3 per day.
+SuperClub members get unlimited reviews. Free tier: 10 reviews per month.
 
 ## Usage
 
