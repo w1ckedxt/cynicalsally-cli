@@ -23,14 +23,20 @@ export function saveResult(result: object, source: string): string {
   return filepath;
 }
 
+/** Sanitize string for safe shell use */
+function shellEscape(s: string): string {
+  return s.replace(/[\\'"$`!]/g, "\\$&").slice(0, 200);
+}
+
 /** Send OS notification */
 export function sendNotification(title: string, message: string): void {
+  const safeTitle = shellEscape(title);
+  const safeMessage = shellEscape(message);
   if (process.platform === "darwin") {
-    exec(`osascript -e 'display notification "${message.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"'`);
+    exec(`osascript -e 'display notification "${safeMessage}" with title "${safeTitle}"'`);
   } else if (process.platform === "linux") {
-    exec(`notify-send "${title}" "${message}"`);
+    exec(`notify-send "${safeTitle}" "${safeMessage}"`);
   }
-  // Windows: could use powershell, skip for now
 }
 
 /** Spawn a detached background worker running sally roast with --bg-worker */
