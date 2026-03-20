@@ -1,19 +1,40 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import ora from "ora";
 import { exec } from "node:child_process";
+import { getDeviceId } from "../utils/config.js";
+import { checkEntitlements } from "../utils/api.js";
 
-const SUPERCLUB_URL = "https://cynicalsally-web.onrender.com/en/superclub";
+const SUPERCLUB_BASE = "https://cynicalsally-web.onrender.com/en/superclub";
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max
 
 export const upgradeCommand = new Command("upgrade")
-  .description("Open the SuperClub page — unlimited roasts")
-  .action(() => {
+  .description("Upgrade to SuperClub CLI — unlimited roasts")
+  .action(async () => {
+    const deviceId = getDeviceId();
+    const url = `${SUPERCLUB_BASE}?cli_device=${encodeURIComponent(deviceId)}`;
+
+    // Check if already SuperClub
+    try {
+      const current = await checkEntitlements();
+      if (current.isSuperClub || current.cliTier === "sc") {
+        console.log(
+          chalk.green("\n  You're already SuperClub.") +
+            chalk.gray(" Go roast something instead of wasting my time.\n")
+        );
+        return;
+      }
+    } catch {
+      // Can't check — continue with upgrade flow
+    }
+
     console.log(
-      chalk.magenta("\nOpening SuperClub...") +
-        " " +
-        chalk.cyan.underline(SUPERCLUB_URL) +
-        "\n"
+      chalk.magenta("\n  Opening SuperClub in your browser...") +
+        chalk.gray(" Complete the checkout and I'll detect it automatically.\n")
     );
 
+    // Open browser
     const openCmd =
       process.platform === "darwin"
         ? "open"
@@ -21,5 +42,55 @@ export const upgradeCommand = new Command("upgrade")
           ? "start"
           : "xdg-open";
 
-    exec(`${openCmd} ${SUPERCLUB_URL}`);
+    exec(`${openCmd} "${url}"`);
+
+    // Poll for subscription activation
+    const spinner = ora({
+      text: "Waiting for your upgrade... complete checkout in the browser.",
+      color: "magenta",
+    }).start();
+
+    const startTime = Date.now();
+
+    const poll = async (): Promise<boolean> => {
+      while (Date.now() - startTime < POLL_TIMEOUT_MS) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+        try {
+          const entitlements = await checkEntitlements();
+          if (entitlements.isSuperClub || entitlements.cliTier === "sc") {
+            return true;
+          }
+        } catch {
+          // Network blip — keep polling
+        }
+      }
+      return false;
+    };
+
+    const upgraded = await poll();
+    spinner.stop();
+
+    if (upgraded) {
+      console.log();
+      console.log(chalk.green.bold("  ✓ SuperClub CLI activated"));
+      console.log();
+      console.log(chalk.white("  Welcome. You actually paid for brutal honesty."));
+      console.log(chalk.white("  I respect that more than your code.\n"));
+      console.log(chalk.gray("  What you get:"));
+      console.log(chalk.white("  • 500 Quick Roasts/month"));
+      console.log(chalk.white("  • 100 Full Truth deep-dives/month"));
+      console.log(chalk.white("  • Unlimited web + Chrome extension roasts"));
+      console.log(chalk.white("  • Sally's coffee-powered priority processing"));
+      console.log();
+      console.log(chalk.gray("  Try it now:"));
+      console.log(chalk.cyan("  sally roast src/ -m full_truth") + chalk.gray("  — the deep dive\n"));
+    } else {
+      console.log(
+        chalk.yellow("\n  Didn't detect an upgrade yet.") +
+          chalk.gray(" If you completed checkout, give it a moment and run:\n") +
+          chalk.cyan("  sally usage") +
+          chalk.gray("  — to check your status\n")
+      );
+    }
   });
