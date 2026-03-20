@@ -424,7 +424,17 @@ export const brainstormCommand = new Command("brainstorm")
   .action(async (descParts: string[], options) => {
     let content = "";
 
-    if (descParts.length > 0) {
+    // Check if input refers to "this project/code" — scan directory for context
+    const rawInput = descParts.join(" ").toLowerCase();
+    const needsProjectContext = descParts.length === 0 ||
+      rawInput.includes("this project") ||
+      rawInput.includes("this code") ||
+      rawInput.includes("this repo") ||
+      rawInput.includes("this app") ||
+      rawInput.includes("dit project") ||
+      rawInput.length < 20;
+
+    if (descParts.length > 0 && !needsProjectContext) {
       // Check if first arg is a file
       const firstArg = descParts[0];
       const resolved = resolve(firstArg);
@@ -436,6 +446,16 @@ export const brainstormCommand = new Command("brainstorm")
         }
       } catch {
         content = descParts.join(" ");
+      }
+    } else if (needsProjectContext) {
+      // Scan current directory and include as context
+      const { collectFiles } = await import("../utils/files.js");
+      const files = collectFiles(resolve("."));
+      const userPrompt = descParts.length > 0 ? descParts.join(" ") : "What do you think of this project?";
+      if (files.length > 0) {
+        content = `${userPrompt}\n\nHere's the project code:\n\n${files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n")}`;
+      } else {
+        content = userPrompt;
       }
     } else {
       const stdin = await readStdin();
