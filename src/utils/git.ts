@@ -38,7 +38,9 @@ export function getLastCommitDiff(): string {
  * Get branch diff (current branch vs target branch).
  */
 export function getBranchDiff(branch: string): string {
-  return execSync(`git diff ${branch}...HEAD`, {
+  // Sanitize branch name to prevent command injection
+  const safeBranch = branch.replace(/[^a-zA-Z0-9_.\-/]/g, "");
+  return execSync(`git diff ${safeBranch}...HEAD`, {
     encoding: "utf-8",
     maxBuffer: 5_000_000,
   });

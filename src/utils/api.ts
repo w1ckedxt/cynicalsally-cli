@@ -3,6 +3,7 @@ import { getDeviceId } from "./config.js";
 import { cacheFlavor, type Flavor } from "./flavor.js";
 
 const API_BASE = process.env.SALLY_API_URL || "https://cynicalsally-web.onrender.com";
+const FETCH_TIMEOUT_MS = 120_000; // 2 minutes (Sonnet FT can take a while)
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +116,7 @@ export async function submitRoast(params: RoastRequest): Promise<RoastResponse> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...params, deviceId }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!res.ok) {
@@ -137,6 +139,7 @@ export async function submitTool(params: ToolRequest): Promise<ToolResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...params, deviceId }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!res.ok) {
