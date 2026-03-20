@@ -563,9 +563,14 @@ export const marketingCommand = new Command("marketing")
         if (found.length > 0) {
           content = "Review the marketing copy and branding in this project:\n\n" + found.join("\n\n");
         } else {
-          console.log(chalk.yellow("\nNo marketing content found.") + chalk.gray(" Pass text, a file, or a URL.\n"));
-          console.log(chalk.gray('  sally marketing "Your tagline here"'));
-          console.log(chalk.gray("  sally marketing README.md\n"));
+          printSally();
+          console.log();
+          console.log(chalk.red("  I don't know what I'm looking at."));
+          console.log(chalk.gray("  No README, no landing page, no package.json — how am I supposed to"));
+          console.log(chalk.gray("  give you marketing advice on a project with no public face?\n"));
+          console.log(chalk.gray("  Give me something to work with:"));
+          console.log(chalk.cyan('    sally marketing "Your tagline here"'));
+          console.log(chalk.cyan("    sally marketing README.md\n"));
           process.exit(1);
         }
       }
