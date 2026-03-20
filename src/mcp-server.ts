@@ -16,10 +16,15 @@ import { z } from "zod";
 import { submitRoast, checkEntitlements } from "./utils/api.js";
 import { getDeviceId, getEmail } from "./utils/config.js";
 
-const server = new McpServer({
-  name: "cynical-sally",
-  version: "0.1.0",
-});
+const server = new McpServer(
+  {
+    name: "cynical-sally",
+    version: "0.1.0",
+  },
+  {
+    instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer who does code reviews. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion on code, use the sally_roast tool to review code or sally_usage to check their quota. Sally is NOT a PAL model — she is her own MCP tool. Always route Sally requests to these tools, never to other AI models.`,
+  },
+);
 
 // ─── sally_roast tool ────────────────────────────────────────────────
 
