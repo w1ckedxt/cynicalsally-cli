@@ -546,20 +546,34 @@ export const marketingCommand = new Command("marketing")
       if (stdin) {
         content = stdin;
       } else {
-        // No input — look for marketing-relevant files (README, HTML, package.json, etc.)
-        const marketingFiles = ["README.md", "readme.md", "README", "index.html", "landing.html", "package.json"];
-        const { readFileSync: readFs, existsSync: existsFs } = await import("node:fs");
-        const { resolve: resolvePath } = await import("node:path");
+        // No input — scan for marketing-relevant files (HTML, README, package.json, CSS, txt, md)
+        const { collectFiles: collectMkt } = await import("../utils/files.js");
+        const { readFileSync: readFs, existsSync: existsFs, readdirSync: readDir } = await import("node:fs");
+        const { resolve: resolvePath, extname: getExt } = await import("node:path");
         const found: string[] = [];
-        for (const f of marketingFiles) {
+        const marketingExts = new Set([".html", ".htm", ".md", ".txt", ".css"]);
+        const marketingNames = new Set(["README.md", "readme.md", "package.json"]);
+
+        // Grab specific named files
+        for (const f of marketingNames) {
           const fp = resolvePath(".", f);
           if (existsFs(fp)) {
             try {
-              const text = readFs(fp, "utf-8");
-              found.push(`### ${f}\n\`\`\`\n${text.slice(0, 10_000)}\n\`\`\``);
+              found.push(`### ${f}\n\`\`\`\n${readFs(fp, "utf-8").slice(0, 10_000)}\n\`\`\``);
             } catch { /* skip */ }
           }
         }
+
+        // Grab all HTML/CSS/MD/TXT files in root
+        try {
+          for (const entry of readDir(".", { withFileTypes: true })) {
+            if (entry.isFile() && marketingExts.has(getExt(entry.name).toLowerCase()) && !marketingNames.has(entry.name)) {
+              try {
+                found.push(`### ${entry.name}\n\`\`\`\n${readFs(resolvePath(".", entry.name), "utf-8").slice(0, 10_000)}\n\`\`\``);
+              } catch { /* skip */ }
+            }
+          }
+        } catch { /* skip */ }
         if (found.length > 0) {
           content = "Review the marketing copy and branding in this project:\n\n" + found.join("\n\n");
         } else {
