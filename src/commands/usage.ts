@@ -56,9 +56,31 @@ export const usageCommand = new Command("usage")
           console.log(`  ${chalk.gray("Prepaid:")}  ${chalk.green("1 Full Truth available")}`);
         }
 
+        // Premium tool trials
+        if (entitlements.toolQuota) {
+          console.log();
+          console.log(chalk.white.bold("  Premium Tools (1 free trial each):"));
+          const toolLabels: Record<string, string> = {
+            explain: "explain",
+            review_pr: "review-pr",
+            refactor: "refactor",
+            brainstorm: "brainstorm",
+            frontend_review: "frontend",
+            marketing_review: "marketing",
+          };
+          for (const [tool, q] of Object.entries(entitlements.toolQuota)) {
+            const label = toolLabels[tool] || tool;
+            const used = q.remaining === 0;
+            const status = used
+              ? chalk.gray("used")
+              : chalk.green("available");
+            console.log(`  ${chalk.gray("  sally " + label)}  ${status}`);
+          }
+        }
+
         console.log();
         console.log(
-          chalk.gray("  Want the full, unfiltered truth? ") +
+          chalk.gray("  Want unlimited everything? ") +
             chalk.cyan("sally upgrade")
         );
       }
