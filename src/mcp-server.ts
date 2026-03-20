@@ -13,7 +13,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { submitRoast, checkEntitlements } from "./utils/api.js";
+import { submitRoast, submitTool, checkEntitlements, type ToolName } from "./utils/api.js";
 import { getDeviceId, getEmail } from "./utils/config.js";
 
 const server = new McpServer(
@@ -22,7 +22,16 @@ const server = new McpServer(
     version: "0.1.0",
   },
   {
-    instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer who does code reviews. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion on code, use the sally_roast tool to review code or sally_usage to check their quota. Sally is NOT a PAL model — she is her own MCP tool. Always route Sally requests to these tools, never to other AI models.`,
+    instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
+- sally_roast: Full code reviews (files with scores and issues)
+- sally_explain: Explain code snippets or files
+- sally_review_pr: Review PR diffs
+- sally_refactor: Suggest refactoring with before/after code
+- sally_brainstorm: Get feedback on ideas and approaches
+- sally_frontend: Review frontend/UI code
+- sally_marketing: Review marketing copy and branding
+- sally_usage: Check quota and account status
+Sally is NOT a PAL model — she is her own MCP tool. Always route Sally requests to these tools, never to other AI models.`,
   },
 );
 
@@ -113,6 +122,167 @@ server.tool(
   },
 );
 
+// ─── Generic tool helper for MCP ─────────────────────────────────────
+
+async function runMcpTool(
+  toolName: ToolName,
+  content: string,
+  lang: string,
+): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }> {
+  try {
+    const response = await submitTool({ tool: toolName, content, lang });
+
+    const parts: string[] = [];
+    const label = toolName.replace("_", " ").toUpperCase();
+    parts.push(`## Sally's ${label}\n`);
+
+    // Score
+    const score = response.data.scorecard as number | undefined;
+    if (typeof score === "number") {
+      parts.push(`**Score: ${score.toFixed(1)}/10**\n`);
+    }
+
+    // Verdict (brainstorm / review_pr)
+    const verdict = response.data.verdict as string | undefined;
+    if (verdict) {
+      parts.push(`**Verdict: ${verdict.toUpperCase()}**\n`);
+    }
+
+    // Messages
+    if (response.messages.length > 0) {
+      for (const msg of response.messages) {
+        parts.push(`**[${msg.type.toUpperCase()}]** ${msg.text}\n`);
+      }
+    }
+
+    // Refactors
+    const refactors = response.data.refactors as Array<{ title: string; priority: string; pattern: string; before: string; after: string }> | undefined;
+    if (refactors && refactors.length > 0) {
+      parts.push("### Refactoring Suggestions\n");
+      for (let i = 0; i < refactors.length; i++) {
+        const r = refactors[i];
+        parts.push(`**${i + 1}. ${r.priority.toUpperCase()} — ${r.title}** (${r.pattern})`);
+        if (r.before) parts.push(`\`\`\`\n// Before\n${r.before}\n\`\`\``);
+        if (r.after) parts.push(`\`\`\`\n// After\n${r.after}\n\`\`\``);
+        parts.push("");
+      }
+    }
+
+    // Issues (frontend)
+    const issues = response.data.issues as Array<{ category: string; severity: string; description: string; fix: string }> | undefined;
+    if (issues && issues.length > 0) {
+      parts.push("### Issues\n");
+      for (let i = 0; i < issues.length; i++) {
+        const issue = issues[i];
+        parts.push(`**${i + 1}. ${issue.severity.toUpperCase()} [${issue.category}]** ${issue.description}`);
+        if (issue.fix) parts.push(`- Fix: ${issue.fix}`);
+        parts.push("");
+      }
+    }
+
+    // Rewrites (marketing)
+    const rewrites = response.data.rewrites as Array<{ original: string; improved: string; why: string }> | undefined;
+    if (rewrites && rewrites.length > 0) {
+      parts.push("### Copy Rewrites\n");
+      for (const rw of rewrites) {
+        parts.push(`- **Before:** "${rw.original}"`);
+        parts.push(`  **After:** "${rw.improved}"`);
+        parts.push(`  *${rw.why}*\n`);
+      }
+    }
+
+    // Bright side + sneer
+    if (response.voice.bright_side) {
+      parts.push(`> ${response.voice.bright_side}\n`);
+    }
+    if (response.voice.hardest_sneer) {
+      parts.push(`> ${response.voice.hardest_sneer}\n`);
+    }
+
+    parts.push(`\n*${toolName} \u2022 ${response.meta.model}*`);
+
+    return { content: [{ type: "text", text: parts.join("\n") }] };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      content: [{ type: "text", text: `Sally couldn't handle that: ${message}\n\nRun \`sally upgrade\` in your terminal for SuperClub access.` }],
+      isError: true,
+    };
+  }
+}
+
+// ─── sally_explain tool ─────────────────────────────────────────────
+
+server.tool(
+  "sally_explain",
+  "Ask Sally to explain code. She'll tell you what it does — and judge you for not knowing.",
+  {
+    content: z.string().describe("Code to explain"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ content, lang }) => runMcpTool("explain", content, lang),
+);
+
+// ─── sally_review_pr tool ───────────────────────────────────────────
+
+server.tool(
+  "sally_review_pr",
+  "Ask Sally to review a PR diff. She catches what automated tools miss.",
+  {
+    diff: z.string().describe("PR diff text (unified diff format)"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ diff, lang }) => runMcpTool("review_pr", diff, lang),
+);
+
+// ─── sally_refactor tool ────────────────────────────────────────────
+
+server.tool(
+  "sally_refactor",
+  "Ask Sally to suggest refactoring. She provides concrete before/after code examples.",
+  {
+    content: z.string().describe("Code that needs refactoring"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ content, lang }) => runMcpTool("refactor", content, lang),
+);
+
+// ─── sally_brainstorm tool ──────────────────────────────────────────
+
+server.tool(
+  "sally_brainstorm",
+  "Ask Sally for feedback on an idea or approach. Cynical but valuable.",
+  {
+    description: z.string().describe("Description of the idea or approach"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ description, lang }) => runMcpTool("brainstorm", description, lang),
+);
+
+// ─── sally_frontend tool ────────────────────────────────────────────
+
+server.tool(
+  "sally_frontend",
+  "Ask Sally to roast frontend/UI code. She'll judge your CSS, components, and design decisions.",
+  {
+    content: z.string().describe("Frontend code (HTML/CSS/JSX/Vue/Svelte/etc)"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ content, lang }) => runMcpTool("frontend_review", content, lang),
+);
+
+// ─── sally_marketing tool ───────────────────────────────────────────
+
+server.tool(
+  "sally_marketing",
+  "Ask Sally to review marketing copy, branding, or landing page text.",
+  {
+    content: z.string().describe("Marketing text, copy, or branding description"),
+    lang: z.string().default("en").describe("Response language code"),
+  },
+  async ({ content, lang }) => runMcpTool("marketing_review", content, lang),
+);
+
 // ─── sally_usage tool ────────────────────────────────────────────────
 
 server.tool(
@@ -137,13 +307,21 @@ server.tool(
         parts.push(`**Tier:** SuperClub CLI ✓`);
         parts.push(`**Quick Reviews:** unlimited`);
         parts.push(`**Full Truth:** unlimited`);
+        parts.push(`**Premium Tools:** unlimited`);
       } else {
         parts.push(`**Tier:** Sally CLI Free`);
         if (entitlements.cliQuota) {
           parts.push(`**Quick Reviews:** ${entitlements.cliQuota.qr.remaining}/${entitlements.cliQuota.qr.limit} remaining`);
           parts.push(`**Full Truth:** ${entitlements.cliQuota.ft.remaining}/${entitlements.cliQuota.ft.limit} remaining`);
         }
-        parts.push(`\n*Run \`sally upgrade\` in your terminal for unlimited roasts.*`);
+        if (entitlements.toolQuota) {
+          parts.push(`\n**Premium Tools (1 free/month each):**`);
+          for (const [tool, q] of Object.entries(entitlements.toolQuota)) {
+            const label = tool.replace("_", " ");
+            parts.push(`  ${label}: ${q.remaining}/${q.limit} remaining`);
+          }
+        }
+        parts.push(`\n*Run \`sally upgrade\` in your terminal for unlimited access.*`);
       }
 
       return {
