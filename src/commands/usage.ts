@@ -72,7 +72,7 @@ export const usageCommand = new Command("usage")
             const label = toolLabels[tool] || tool;
             const used = q.remaining === 0;
             const status = used
-              ? chalk.gray("used")
+              ? chalk.red("used")
               : chalk.green("available");
             console.log(`  ${chalk.gray("  sally " + label)}  ${status}`);
           }
