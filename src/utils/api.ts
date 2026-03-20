@@ -48,6 +48,36 @@ export interface RoastResponse {
   };
 }
 
+export type ToolName = "explain" | "review_pr" | "refactor" | "brainstorm" | "frontend_review" | "marketing_review";
+
+export interface ToolRequest {
+  tool: ToolName;
+  content: string;
+  lang?: string;
+}
+
+export interface ToolMessage {
+  type: string;
+  text: string;
+}
+
+export interface ToolResponse {
+  tool: ToolName;
+  data: Record<string, unknown>;
+  voice: {
+    roast: string;
+    bright_side: string;
+    hardest_sneer: string;
+  };
+  messages: ToolMessage[];
+  meta: {
+    tool: string;
+    model: string;
+    locale: string;
+  };
+  quota?: { remaining: number; limit: number };
+}
+
 export interface EntitlementsResponse {
   isSuperClub: boolean;
   tier: string | null;
@@ -58,6 +88,7 @@ export interface EntitlementsResponse {
     qr: { remaining: number; limit: number };
     ft: { remaining: number; limit: number };
   };
+  toolQuota?: Record<string, { remaining: number; limit: number }>;
   flavor?: Flavor;
 }
 
@@ -95,6 +126,26 @@ export async function submitRoast(params: RoastRequest): Promise<RoastResponse> 
   }
 
   return (await res.json()) as RoastResponse;
+}
+
+/** Submit a premium tool request via the Render backend */
+export async function submitTool(params: ToolRequest): Promise<ToolResponse> {
+  const deviceId = getDeviceId();
+  const url = `${API_BASE}/api/v1/tool`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...params, deviceId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    const message = (body as { error?: string }).error || `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return (await res.json()) as ToolResponse;
 }
 
 /** Request magic link login */

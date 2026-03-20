@@ -8,6 +8,14 @@ import { usageCommand } from "./commands/usage.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { mcpCommand } from "./commands/mcp.js";
 import { resultsCommand } from "./commands/results.js";
+import {
+  explainCommand,
+  reviewPrCommand,
+  refactorCommand,
+  brainstormCommand,
+  frontendCommand,
+  marketingCommand,
+} from "./commands/tools.js";
 
 const program = new Command();
 
@@ -25,5 +33,13 @@ program.addCommand(usageCommand);
 program.addCommand(upgradeCommand);
 program.addCommand(mcpCommand);
 program.addCommand(resultsCommand);
+
+// Premium tools
+program.addCommand(explainCommand);
+program.addCommand(reviewPrCommand);
+program.addCommand(refactorCommand);
+program.addCommand(brainstormCommand);
+program.addCommand(frontendCommand);
+program.addCommand(marketingCommand);
 
 program.parse();
