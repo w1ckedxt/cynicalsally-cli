@@ -296,10 +296,15 @@ export const explainCommand = new Command("explain")
       if (stdin) {
         content = stdin;
       } else {
-        console.log(chalk.yellow("\nGive me something to explain.") + chalk.gray(" Pass a file or pipe some code.\n"));
-        console.log(chalk.gray("  sally explain src/index.ts"));
-        console.log(chalk.gray("  cat file.py | sally explain\n"));
-        process.exit(1);
+        // No input — scan current directory
+        const { collectFiles } = await import("../utils/files.js");
+        const files = collectFiles(resolve("."));
+        if (files.length > 0) {
+          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        } else {
+          console.log(chalk.yellow("\nNothing to explain here.") + chalk.gray(" No code files found.\n"));
+          process.exit(1);
+        }
       }
     }
 
@@ -388,10 +393,15 @@ export const refactorCommand = new Command("refactor")
       if (stdin) {
         content = stdin;
       } else {
-        console.log(chalk.yellow("\nGive me something to refactor.") + chalk.gray(" Pass a file or pipe some code.\n"));
-        console.log(chalk.gray("  sally refactor src/utils.ts"));
-        console.log(chalk.gray("  cat messy-code.js | sally refactor\n"));
-        process.exit(1);
+        // No input — scan current directory
+        const { collectFiles } = await import("../utils/files.js");
+        const files = collectFiles(resolve("."));
+        if (files.length > 0) {
+          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        } else {
+          console.log(chalk.yellow("\nNothing to refactor here.") + chalk.gray(" No code files found.\n"));
+          process.exit(1);
+        }
       }
     }
 
@@ -464,11 +474,15 @@ export const frontendCommand = new Command("frontend")
       if (stdin) {
         content = stdin;
       } else {
-        console.log(chalk.yellow("\nGive me frontend code to roast.") + chalk.gray(" File, directory, or pipe.\n"));
-        console.log(chalk.gray("  sally frontend src/components/"));
-        console.log(chalk.gray("  sally frontend App.tsx"));
-        console.log(chalk.gray("  cat styles.css | sally frontend\n"));
-        process.exit(1);
+        // No input — scan current directory
+        const { collectFiles: collectFrontend } = await import("../utils/files.js");
+        const files = collectFrontend(resolve("."));
+        if (files.length > 0) {
+          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        } else {
+          console.log(chalk.yellow("\nNo frontend code found here.\n"));
+          process.exit(1);
+        }
       }
     }
 
