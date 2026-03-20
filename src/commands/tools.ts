@@ -546,13 +546,26 @@ export const marketingCommand = new Command("marketing")
       if (stdin) {
         content = stdin;
       } else {
-        // No input — scan current directory for anything with copy/content
-        const { collectFiles } = await import("../utils/files.js");
-        const files = collectFiles(resolve("."));
-        if (files.length > 0) {
-          content = "Review the marketing copy and branding in this project:\n\n" + files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        // No input — look for marketing-relevant files (README, HTML, package.json, etc.)
+        const marketingFiles = ["README.md", "readme.md", "README", "index.html", "landing.html", "package.json"];
+        const { readFileSync: readFs, existsSync: existsFs } = await import("node:fs");
+        const { resolve: resolvePath } = await import("node:path");
+        const found: string[] = [];
+        for (const f of marketingFiles) {
+          const fp = resolvePath(".", f);
+          if (existsFs(fp)) {
+            try {
+              const text = readFs(fp, "utf-8");
+              found.push(`### ${f}\n\`\`\`\n${text.slice(0, 10_000)}\n\`\`\``);
+            } catch { /* skip */ }
+          }
+        }
+        if (found.length > 0) {
+          content = "Review the marketing copy and branding in this project:\n\n" + found.join("\n\n");
         } else {
-          console.log(chalk.yellow("\nNothing to review here.") + chalk.gray(" No files found.\n"));
+          console.log(chalk.yellow("\nNo marketing content found.") + chalk.gray(" Pass text, a file, or a URL.\n"));
+          console.log(chalk.gray('  sally marketing "Your tagline here"'));
+          console.log(chalk.gray("  sally marketing README.md\n"));
           process.exit(1);
         }
       }
