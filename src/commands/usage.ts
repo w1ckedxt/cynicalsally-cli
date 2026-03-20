@@ -4,10 +4,15 @@ import ora from "ora";
 import { getEmail, getDeviceId } from "../utils/config.js";
 import { checkEntitlements } from "../utils/api.js";
 
+const TIER_LABELS: Record<string, string> = {
+  lite: "Sally CLI Free",
+  sc: "SuperClub CLI",
+};
+
 export const usageCommand = new Command("usage")
   .description("Check your account status and remaining quota")
   .action(async () => {
-    const spinner = ora({ text: "Checking account...", color: "magenta" }).start();
+    const spinner = ora({ text: "Checking if you deserve my attention...", color: "magenta" }).start();
 
     try {
       const entitlements = await checkEntitlements();
@@ -17,7 +22,7 @@ export const usageCommand = new Command("usage")
       const deviceId = getDeviceId();
 
       console.log();
-      console.log(chalk.magenta.bold("  Account Status"));
+      console.log(chalk.magenta.bold("  Your Sally Status"));
       console.log();
 
       if (email) {
@@ -26,29 +31,49 @@ export const usageCommand = new Command("usage")
       console.log(`  ${chalk.gray("Device:")}   ${chalk.gray(deviceId.slice(0, 8) + "...")}`);
       console.log();
 
-      if (entitlements.isSuperClub) {
-        console.log(`  ${chalk.yellow.bold("SuperClub")} ${chalk.green("active")}`);
-        console.log(`  ${chalk.gray("Roasts:")}   ${chalk.green("unlimited")}`);
+      const cliTier = entitlements.cliTier || (entitlements.isSuperClub ? "sc" : "lite");
+      const tierLabel = TIER_LABELS[cliTier] || cliTier;
+
+      if (cliTier === "sc") {
+        console.log(`  ${chalk.gray("Tier:")}     ${chalk.yellow.bold(tierLabel)} ${chalk.green("active")}`);
+        console.log(`  ${chalk.gray("Quick Reviews:")}  ${chalk.green("unlimited")}`);
+        console.log(`  ${chalk.gray("Full Truth:")}     ${chalk.green("unlimited")}`);
+        console.log();
+        console.log(chalk.gray("  You actually paid. Respect. Now let me tear your code apart."));
       } else {
-        console.log(`  ${chalk.gray("Plan:")}     ${chalk.white("Free")}`);
-        console.log(`  ${chalk.gray("Roasts:")}   ${chalk.white(`${entitlements.quotaRemaining}/3`)} today`);
+        console.log(`  ${chalk.gray("Tier:")}     ${chalk.white(tierLabel)}`);
+
+        if (entitlements.cliQuota) {
+          const qr = entitlements.cliQuota.qr;
+          const ft = entitlements.cliQuota.ft;
+          console.log(`  ${chalk.gray("Quick Reviews:")}  ${chalk.white(`${qr.remaining}/${qr.limit}`)} remaining`);
+          console.log(`  ${chalk.gray("Full Truth:")}     ${chalk.white(`${ft.remaining}/${ft.limit}`)} remaining`);
+        } else {
+          console.log(`  ${chalk.gray("Roasts:")}   ${chalk.white(`${entitlements.quotaRemaining}/3`)} today`);
+        }
+
         if (entitlements.hasPrepaidGrant) {
           console.log(`  ${chalk.gray("Prepaid:")}  ${chalk.green("1 Full Truth available")}`);
         }
+
+        console.log();
+        console.log(
+          chalk.gray("  Want the full, unfiltered truth? ") +
+            chalk.cyan("sally upgrade")
+        );
       }
 
       if (!email) {
         console.log();
         console.log(
-          chalk.gray("  Not logged in. Run ") +
-            chalk.cyan("sally login your@email.com") +
-            chalk.gray(" for SuperClub access.")
+          chalk.gray("  I don't even know who you are. ") +
+            chalk.cyan("sally login your@email.com")
         );
       }
 
       console.log();
     } catch {
       spinner.stop();
-      console.log(chalk.red("\nFailed to check account. Network error.\n"));
+      console.log(chalk.red("\nCan't reach the server. Your internet is giving 'it works on my machine' energy.\n"));
     }
   });

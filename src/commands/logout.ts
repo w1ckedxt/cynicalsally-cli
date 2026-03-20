@@ -7,10 +7,10 @@ export const logoutCommand = new Command("logout")
   .action(() => {
     const existing = getEmail();
     if (!existing) {
-      console.log(chalk.gray("\nNot logged in. Nothing to do.\n"));
+      console.log(chalk.gray("\nYou weren't even logged in. Dramatic much?\n"));
       return;
     }
 
     clearSession();
-    console.log(chalk.green("\nLogged out.") + " Session cleared.\n");
+    console.log(chalk.green("\nGone.") + chalk.gray(" I already forgot about you.\n"));
   });
