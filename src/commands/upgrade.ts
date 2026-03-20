@@ -5,7 +5,7 @@ import { exec } from "node:child_process";
 import { getDeviceId } from "../utils/config.js";
 import { checkEntitlements } from "../utils/api.js";
 
-const SUPERCLUB_BASE = "https://cynicalsally-web.onrender.com/en/superclub";
+const SUPERCLUB_BASE = "https://cynicalsally-web.onrender.com/en/fullsuite";
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max
 
