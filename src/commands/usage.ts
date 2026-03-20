@@ -6,7 +6,7 @@ import { checkEntitlements } from "../utils/api.js";
 
 const TIER_LABELS: Record<string, string> = {
   lite: "Sally CLI Free",
-  sc: "SuperClub CLI",
+  sc: "Sally's Full Suite",
 };
 
 export const usageCommand = new Command("usage")
