@@ -11,33 +11,33 @@ export const loginCommand = new Command("login")
     const existing = getEmail();
     if (existing) {
       console.log(
-        chalk.yellow("\nAlready logged in as ") +
+        chalk.yellow("\nI already know you as ") +
           chalk.cyan(existing) +
-          ".\nRun " +
+          chalk.yellow(".") +
+          "\nWant a fresh start? " +
           chalk.cyan("sally logout") +
-          " first to switch accounts.\n"
+          " first.\n"
       );
       return;
     }
 
     if (!email) {
       console.log(
-        chalk.magenta("\nLog in to Sally") +
+        chalk.magenta("\nWho are you?") +
           "\n\n" +
           chalk.gray("  sally login your@email.com") +
           "\n\n" +
-          "SuperClub members get unlimited roasts.\n" +
-          "Free users get 3 roasts per day.\n"
+          chalk.gray("SuperClub members get unlimited roasts. The rest of you get a taste.\n")
       );
       return;
     }
 
     if (!email.includes("@") || !email.includes(".")) {
-      console.log(chalk.red("\nInvalid email format.\n"));
+      console.log(chalk.red("\nThat's not an email. I'm cynical, not blind.\n"));
       process.exit(1);
     }
 
-    const spinner = ora({ text: "Sending magic link...", color: "magenta" }).start();
+    const spinner = ora({ text: "Summoning a magic link... don't get too excited.", color: "magenta" }).start();
 
     try {
       const result = await requestMagicLink(email);
@@ -45,23 +45,19 @@ export const loginCommand = new Command("login")
 
       if (result.sent) {
         console.log(
-          chalk.green("\nMagic link sent!") +
-            " Check your inbox at " +
+          chalk.green("\nCheck your inbox at ") +
             chalk.cyan(email) +
-            ".\n\n" +
-            chalk.gray("Click the link in the email, then run:") +
-            "\n" +
-            chalk.cyan("  sally usage") +
-            "\n" +
-            chalk.gray("to verify your account.\n")
+            chalk.green(".") +
+            "\n\n" +
+            chalk.gray("Click the link. I'll be here, judging your code.\n")
         );
         // Save email locally — the magic link verify maps deviceId server-side
         saveEmail(email);
       } else {
-        console.log(chalk.red(`\n${result.error || "Failed to send magic link."}\n`));
+        console.log(chalk.red(`\n${result.error || "Couldn't send that. Even magic has its limits."}\n`));
       }
     } catch {
       spinner.stop();
-      console.log(chalk.red("\nNetwork error. Is the internet working?\n"));
+      console.log(chalk.red("\nCan't reach the server. Your wifi is as reliable as your code.\n"));
     }
   });

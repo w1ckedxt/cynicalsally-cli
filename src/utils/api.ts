@@ -1,5 +1,6 @@
 import type { ReviewFile } from "./files.js";
 import { getDeviceId } from "./config.js";
+import { cacheFlavor, type Flavor } from "./flavor.js";
 
 const API_BASE = process.env.SALLY_API_URL || "https://cynicalsally-web.onrender.com";
 
@@ -52,6 +53,12 @@ export interface EntitlementsResponse {
   tier: string | null;
   quotaRemaining: number;
   hasPrepaidGrant: boolean;
+  cliTier?: "lite" | "sc";
+  cliQuota?: {
+    qr: { remaining: number; limit: number };
+    ft: { remaining: number; limit: number };
+  };
+  flavor?: Flavor;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,10 +90,7 @@ export async function submitRoast(params: RoastRequest): Promise<RoastResponse> 
     const body = await res.json().catch(() => ({ error: res.statusText }));
     const message = (body as { error?: string }).error || `HTTP ${res.status}`;
 
-    if (res.status === 401) throw new ApiError(401, `Not authenticated. Run: sally login`);
-    if (res.status === 402) throw new ApiError(402, `No credits remaining. Run: sally upgrade`);
-    if (res.status === 429) throw new ApiError(429, `Rate limited. Wait a moment and try again.`);
-
+    // Use backend's Sally-voiced message when available
     throw new ApiError(res.status, message);
   }
 
@@ -104,12 +108,19 @@ export async function requestMagicLink(email: string): Promise<{ sent: boolean; 
   return await res.json();
 }
 
-/** Check entitlements (quota, SuperClub status) */
+/** Check entitlements (quota, SuperClub status) + cache flavor */
 export async function checkEntitlements(): Promise<EntitlementsResponse> {
   const deviceId = getDeviceId();
   const res = await fetch(`${API_BASE}/api/v1/entitlements?deviceId=${deviceId}`);
   if (!res.ok) {
     return { isSuperClub: false, tier: null, quotaRemaining: 3, hasPrepaidGrant: false };
   }
-  return (await res.json()) as EntitlementsResponse;
+  const data = (await res.json()) as EntitlementsResponse;
+
+  // Cache Sally's flavor text from backend
+  if (data.flavor) {
+    cacheFlavor(data.flavor);
+  }
+
+  return data;
 }

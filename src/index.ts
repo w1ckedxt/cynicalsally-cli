@@ -7,6 +7,7 @@ import { logoutCommand } from "./commands/logout.js";
 import { usageCommand } from "./commands/usage.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { mcpCommand } from "./commands/mcp.js";
+import { resultsCommand } from "./commands/results.js";
 
 const program = new Command();
 
@@ -23,5 +24,6 @@ program.addCommand(logoutCommand);
 program.addCommand(usageCommand);
 program.addCommand(upgradeCommand);
 program.addCommand(mcpCommand);
+program.addCommand(resultsCommand);
 
 program.parse();
