@@ -41,6 +41,15 @@ export interface Flavor {
   found_last_commit: string;
   report_saved: string;
   fail_under: string;
+
+  // Premium tools
+  tool_spinner_explain: string;
+  tool_spinner_review_pr: string;
+  tool_spinner_refactor: string;
+  tool_spinner_brainstorm: string;
+  tool_spinner_frontend: string;
+  tool_spinner_marketing: string;
+  tool_quota_exhausted: string;
 }
 
 /** Bare-bones fallbacks — intentionally bland. Sally's real voice is on the backend. */
@@ -79,6 +88,13 @@ const FALLBACK: Flavor = {
   found_last_commit: "Roasting last commit.",
   report_saved: "Saved to",
   fail_under: "Below threshold.",
+  tool_spinner_explain: "Reading your code...",
+  tool_spinner_review_pr: "Reviewing PR...",
+  tool_spinner_refactor: "Analyzing for refactoring...",
+  tool_spinner_brainstorm: "Thinking about your idea...",
+  tool_spinner_frontend: "Inspecting frontend...",
+  tool_spinner_marketing: "Reading your copy...",
+  tool_quota_exhausted: "Tool limit reached.",
 };
 
 interface CachedFlavor {
