@@ -9,6 +9,7 @@ const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 interface SallyConfig {
   device_id?: string;
   email?: string;
+  tools_hint_shown?: boolean;
 }
 
 function ensureConfigDir(): void {
@@ -64,4 +65,13 @@ export function clearSession(): void {
 /** Check if user is logged in */
 export function isLoggedIn(): boolean {
   return !!readConfig().email;
+}
+
+/** Show tools hint once, then never again. Returns true if this is the first time. */
+export function showToolsHint(): boolean {
+  const config = readConfig();
+  if (config.tools_hint_shown) return false;
+  config.tools_hint_shown = true;
+  writeConfig(config);
+  return true;
 }

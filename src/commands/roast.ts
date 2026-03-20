@@ -9,6 +9,7 @@ import { displayRoast, printSally } from "../utils/output.js";
 import { saveReport } from "../utils/report.js";
 import { askBackground, spawnBackgroundWorker, saveResult, sendNotification } from "../utils/background.js";
 import { getFlavor } from "../utils/flavor.js";
+import { showToolsHint } from "../utils/config.js";
 import type { ReviewFile } from "../utils/files.js";
 
 export const roastCommand = new Command("roast")
@@ -214,6 +215,16 @@ export const roastCommand = new Command("roast")
         console.log(JSON.stringify(response, null, 2));
       } else {
         displayRoast(response);
+
+        // Show premium tools hint (once per install)
+        if (mode === "quick" && showToolsHint()) {
+          console.log(chalk.gray("  " + "\u2500".repeat(56)));
+          console.log();
+          console.log(chalk.gray("  You also get ") + chalk.white("1 free trial") + chalk.gray(" of each premium tool:"));
+          console.log(chalk.cyan("    sally explain") + chalk.gray("    sally refactor") + chalk.gray("    sally brainstorm"));
+          console.log(chalk.cyan("    sally frontend") + chalk.gray("   sally marketing") + chalk.gray("    sally review-pr"));
+          console.log();
+        }
 
         // Auto-save Full Truth reviews as markdown report
         if (mode === "full_truth") {
