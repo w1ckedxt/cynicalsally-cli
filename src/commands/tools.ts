@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { readFileSync, statSync, existsSync } from "node:fs";
 import { submitTool, ApiError, type ToolName, type ToolResponse } from "../utils/api.js";
 import { printSally } from "../utils/output.js";
+import { saveToolReport } from "../utils/report.js";
 import { getFlavor } from "../utils/flavor.js";
 
 // ---------------------------------------------------------------------------
@@ -269,6 +270,13 @@ async function runTool(
       console.log(JSON.stringify(response, null, 2));
     } else {
       displayToolResponse(response);
+
+      // Auto-save tool report to .sally/ directory
+      const savedPath = saveToolReport(response);
+      if (savedPath) {
+        console.log(chalk.gray("  💾 ") + chalk.gray("Saved to ") + chalk.cyan(savedPath));
+        console.log();
+      }
     }
   } catch (err) {
     spinner.stop();
