@@ -6,8 +6,8 @@ import { getDeviceId } from "../utils/config.js";
 import { checkEntitlements } from "../utils/api.js";
 
 const SUPERCLUB_BASE = "https://cynicalsally-web.onrender.com/en/fullsuite";
-const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max
+const POLL_INTERVAL_MS = 5000; // 5 seconds between checks
+const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max (Stripe webhooks can be slow)
 
 export const upgradeCommand = new Command("upgrade")
   .description("Upgrade to SuperClub CLI — unlimited roasts")
@@ -73,14 +73,15 @@ export const upgradeCommand = new Command("upgrade")
 
     if (upgraded) {
       console.log();
-      console.log(chalk.green.bold("  ✓ SuperClub CLI activated"));
+      console.log(chalk.green.bold("  ✓ Sally's Full Suite activated"));
       console.log();
       console.log(chalk.white("  Welcome. You actually paid for brutal honesty."));
       console.log(chalk.white("  I respect that more than your code.\n"));
       console.log(chalk.gray("  What you get:"));
-      console.log(chalk.white("  • 500 Quick Roasts/month"));
-      console.log(chalk.white("  • 100 Full Truth deep-dives/month"));
-      console.log(chalk.white("  • Unlimited web + Chrome extension roasts"));
+      console.log(chalk.white("  • 500 Quick Roasts + 100 Full Truth deep-dives/month"));
+      console.log(chalk.white("  • 8 premium tools — explain, refactor, brainstorm & more"));
+      console.log(chalk.white("  • MCP integration — Sally in your IDE"));
+      console.log(chalk.white("  • Unlimited web + Chrome extension (SuperClub included)"));
       console.log(chalk.white("  • Sally's coffee-powered priority processing"));
       console.log();
       console.log(chalk.gray("  Try it now:"));
