@@ -462,11 +462,15 @@ export const brainstormCommand = new Command("brainstorm")
       if (stdin) {
         content = stdin;
       } else {
-        console.log(chalk.yellow("\nGive me an idea to tear apart.") + chalk.gray(" Describe it or pipe it.\n"));
-        console.log(chalk.gray('  sally brainstorm "A CLI tool that roasts code"'));
-        console.log(chalk.gray("  sally brainstorm idea.txt"));
-        console.log(chalk.gray("  echo 'My startup idea...' | sally brainstorm\n"));
-        process.exit(1);
+        // No input at all — scan current directory as context
+        const { collectFiles: collectBs } = await import("../utils/files.js");
+        const files = collectBs(resolve("."));
+        if (files.length > 0) {
+          content = "What do you think of this project?\n\n" + files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        } else {
+          console.log(chalk.yellow("\nNothing here to brainstorm about.") + chalk.gray(" No files found.\n"));
+          process.exit(1);
+        }
       }
     }
 
@@ -542,11 +546,15 @@ export const marketingCommand = new Command("marketing")
       if (stdin) {
         content = stdin;
       } else {
-        console.log(chalk.yellow("\nGive me marketing copy to judge.") + chalk.gray(" Text, file, or pipe.\n"));
-        console.log(chalk.gray('  sally marketing "We\'re disrupting the synergy space"'));
-        console.log(chalk.gray("  sally marketing landing-page.html"));
-        console.log(chalk.gray("  cat pitch.txt | sally marketing\n"));
-        process.exit(1);
+        // No input — scan current directory for anything with copy/content
+        const { collectFiles } = await import("../utils/files.js");
+        const files = collectFiles(resolve("."));
+        if (files.length > 0) {
+          content = "Review the marketing copy and branding in this project:\n\n" + files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+        } else {
+          console.log(chalk.yellow("\nNothing to review here.") + chalk.gray(" No files found.\n"));
+          process.exit(1);
+        }
       }
     }
 
