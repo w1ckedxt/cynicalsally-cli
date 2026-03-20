@@ -6,7 +6,8 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "sally": "./dist/index.js"
+    "sally": "./dist/index.js",
+    "sally-mcp": "./dist/mcp-server.js"
   },
   "main": "./dist/index.js",
   "files": [
@@ -40,6 +41,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "inquirer": "^12.4.2",
