@@ -40,25 +40,37 @@ function printWrapped(text: string, indent = "    ", color = chalk.white): void 
   for (const line of lines) console.log(color(line));
 }
 
+const MAX_INPUT_SIZE = 500 * 1024; // 500KB — matches backend limit
+
 /** Read file content or return raw text argument */
 function resolveContent(input: string): string {
   // Try as a file path first
   const resolved = resolve(input);
   try {
     if (existsSync(resolved) && statSync(resolved).isFile()) {
+      const stat = statSync(resolved);
+      if (stat.size > MAX_INPUT_SIZE) {
+        throw new Error(`File too large (${Math.round(stat.size / 1024)}KB). Max ${MAX_INPUT_SIZE / 1024}KB.`);
+      }
       return readFileSync(resolved, "utf-8");
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("too large")) throw err;
     // Not a file, treat as raw text
   }
   return input;
 }
 
-/** Read from stdin if available */
+/** Read from stdin if available (with size limit) */
 async function readStdin(): Promise<string | null> {
   if (process.stdin.isTTY) return null;
   const chunks: Buffer[] = [];
+  let totalSize = 0;
   for await (const chunk of process.stdin) {
+    totalSize += chunk.length;
+    if (totalSize > MAX_INPUT_SIZE) {
+      throw new Error(`Input too large (>${MAX_INPUT_SIZE / 1024}KB). Pipe a smaller file.`);
+    }
     chunks.push(chunk);
   }
   const text = Buffer.concat(chunks).toString("utf-8").trim();
@@ -317,7 +329,9 @@ export const reviewPrCommand = new Command("review-pr")
           const { execSync } = await import("node:child_process");
           try {
             // Try `gh pr diff` first (GitHub CLI)
-            content = execSync(`gh pr diff ${prNumber}`, { encoding: "utf-8", maxBuffer: 5_000_000 });
+            // Sanitize PR number to prevent command injection
+            const safePr = String(prNumber).replace(/[^0-9]/g, "");
+            content = execSync(`gh pr diff ${safePr}`, { encoding: "utf-8", maxBuffer: 5_000_000 });
           } catch {
             // Fallback: try getting diff vs main
             try {
