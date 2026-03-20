@@ -1,5 +1,5 @@
 import type { ReviewFile } from "./files.js";
-import { getDeviceId } from "./config.js";
+import { getDeviceId, saveEmail } from "./config.js";
 import { cacheFlavor, type Flavor } from "./flavor.js";
 
 const API_BASE = process.env.SALLY_API_URL || "https://cynicalsally-web.onrender.com";
@@ -84,6 +84,7 @@ export interface EntitlementsResponse {
   tier: string | null;
   quotaRemaining: number;
   hasPrepaidGrant: boolean;
+  email?: string;
   cliTier?: "lite" | "sc";
   cliQuota?: {
     qr: { remaining: number; limit: number };
@@ -174,6 +175,11 @@ export async function checkEntitlements(): Promise<EntitlementsResponse> {
   // Cache Sally's flavor text from backend
   if (data.flavor) {
     cacheFlavor(data.flavor);
+  }
+
+  // Auto-save email if returned by backend (SC users via Stripe)
+  if (data.email) {
+    saveEmail(data.email);
   }
 
   return data;
