@@ -5,7 +5,7 @@
 <h1 align="center">@cynicalsally/cli</h1>
 
 <p align="center">
-  <strong>Brutally honest code reviews — in your terminal and your IDE.</strong><br/>
+  <strong>Brutally honest code reviews. Terminal + IDE.</strong><br/>
   <em>Because "You're absolutely right" is probably absolutely wrong.</em>
 </p>
 
@@ -19,9 +19,9 @@
 
 Your AI pair programmer is lying to you. Sally isn't.
 
-She's the senior engineer your code hoped it'd never meet — reviewing your work with the honesty your linter is too polite to deliver. Scores from 0-10, real issues with evidence, and fixes you can actually use.
+She's the senior engineer your code hoped it'd never meet. Scores from 0 to 10, real issues backed by evidence, and fixes you can actually use.
 
-**CLI + MCP tool.** Use Sally directly from your terminal, or plug her into [Claude Code](https://claude.ai/claude-code), [Cursor](https://cursor.com), or [Windsurf](https://windsurf.com) as an MCP server. Same brutal honesty, wherever you work.
+Works as a CLI tool and as an MCP server in [Claude Code](https://claude.ai/claude-code), [Cursor](https://cursor.com), and [Windsurf](https://windsurf.com).
 
 ## Install
 
@@ -76,8 +76,8 @@ sally roast [paths...] [options]
   --lang <lang>         Response language code (default: "en")
   --json                Output raw JSON (for piping or scripting)
   --fail-under <score>  Exit code 1 if quality score is below threshold
-  --ci                  CI mode — compact output + exit codes
-  --bg                  Run Full Truth in background with OS notification
+  --ci                  CI mode: compact output, exit codes
+  --bg                  Run Full Truth in background, get OS notification when done
 ```
 
 ---
@@ -203,11 +203,11 @@ sally marketing README.md
 
 ---
 
-Every premium tool accepts **file paths**, **raw text**, or **piped stdin**. Each tool includes **1 free trial** — no account needed.
+Every tool accepts **file paths**, **raw text**, or **piped stdin**. Each includes **1 free trial**, no account needed.
 
 ## CI/CD Integration
 
-Sally can gate your pipeline on code quality:
+Gate your pipeline on code quality:
 
 ```yaml
 # GitHub Actions
@@ -215,11 +215,11 @@ Sally can gate your pipeline on code quality:
   run: npx @cynicalsally/cli roast ./src/ --fail-under=5 --ci
 ```
 
-The `--ci` flag produces compact output with exit codes. `--fail-under` causes a non-zero exit when the score is below your threshold. Combine with `--json` for machine-readable output.
+`--ci` gives compact output with exit codes. `--fail-under` fails the build when the score drops below your threshold. Add `--json` for machine-readable output.
 
-## MCP Server (IDE Integration)
+## MCP Server
 
-Sally works as an MCP tool inside **Claude Code**, **Cursor**, and **Windsurf**. Add this to your MCP config:
+Works inside **Claude Code**, **Cursor**, and **Windsurf**. Add to your MCP config:
 
 ```json
 {
@@ -232,7 +232,7 @@ Sally works as an MCP tool inside **Claude Code**, **Cursor**, and **Windsurf**.
 }
 ```
 
-Once configured, your AI agent can use all of Sally's tools directly:
+Available tools:
 
 | MCP Tool | What it does |
 |----------|-------------|
@@ -270,11 +270,11 @@ Run `sally mcp` in your terminal to see setup instructions.
 | | Free | Full Suite |
 |---|---|---|
 | **Quick Roasts** | 90/month | 500/month |
-| **Full Truth** (deep dive) | — | 100/month |
+| **Full Truth** (deep dive) | | 100/month |
 | **Premium tools** | 1 free trial each | Unlimited |
 | **MCP integration** | Roast only | All 8 tools |
-| **Background reviews** | — | `--bg` flag |
-| **Saved reports** | — | `.sally/` directory |
+| **Background reviews** | | `--bg` flag |
+| **Saved reports** | | `.sally/` directory |
 | **Price** | $0 | €14.99/month |
 
 ```bash
@@ -282,12 +282,12 @@ sally usage     # Check your current quota
 sally upgrade   # Upgrade to Full Suite
 ```
 
-Full Suite also includes **SuperClub** — unlimited web reviews + Chrome Extension access.
+Full Suite includes **SuperClub**: unlimited web reviews + Chrome Extension.
 
 ## Privacy & Security
 
 - Code is transmitted over HTTPS and processed in real-time
-- **No source code is stored** on our servers — ever
+- **No source code is stored** on our servers. Ever.
 - Analysis results are tied to an anonymous device ID
 - Full Suite members can optionally link an email for account features
 - Config stored locally at `~/.sally/config.json`
@@ -296,7 +296,7 @@ For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
 
 ## Contributing
 
-Found a bug? Have a feature idea? [Open an issue](https://github.com/w1ckedxt/cynicalsally-cli/issues) — Sally promises to only judge your issue title a little.
+Found a bug or have a feature idea? [Open an issue](https://github.com/w1ckedxt/cynicalsally-cli/issues). Sally promises to only judge your issue title a little.
 
 ## License
 
