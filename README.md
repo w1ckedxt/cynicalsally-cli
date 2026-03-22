@@ -17,9 +17,11 @@
 
 ---
 
-Your AI pair programmer is lying to you. Sally isn't. She's the senior engineer your code hoped it'd never meet — reviewing your work with the honesty your linter is too polite to deliver.
+Your AI pair programmer is lying to you. Sally isn't.
 
-**CLI + MCP tool.** Use Sally directly from your terminal, or plug her into Claude Code, Cursor, or Windsurf as an MCP server. Same brutal honesty, wherever you work.
+She's the senior engineer your code hoped it'd never meet — reviewing your work with the honesty your linter is too polite to deliver. Scores from 0-10, real issues with evidence, and fixes you can actually use.
+
+**CLI + MCP tool.** Use Sally directly from your terminal, or plug her into [Claude Code](https://claude.ai/claude-code), [Cursor](https://cursor.com), or [Windsurf](https://windsurf.com) as an MCP server. Same brutal honesty, wherever you work.
 
 ## Install
 
@@ -38,15 +40,16 @@ npx @cynicalsally/cli roast ./src/
 ## Quick Start
 
 ```bash
-# Roast your code
-sally roast ./src/
-
-# Sally auto-detects what to review when you don't specify
+# Sally auto-detects what to review
 sally roast
 # → staged changes? reviews those
 # → unstaged changes? reviews those
 # → recent commit? reviews that
 # → nothing? scans the directory
+
+# Roast a file or directory
+sally roast src/utils/auth.ts
+sally roast ./src/
 
 # Roast staged changes before you commit
 sally roast --staged
@@ -57,59 +60,15 @@ sally roast --diff main
 # Deep analysis with issues + actionable fixes
 sally roast ./src/ -m full_truth
 
-# Run the deep analysis in the background (OS notification when done)
+# Run deep analysis in the background (OS notification when done)
 sally roast ./src/ -m full_truth --bg
-```
-
-## Commands
-
-### Core
-
-| Command | Description |
-|---------|-------------|
-| `sally roast [paths...]` | Review files, directories, or git changes |
-| `sally login <email>` | Log in via magic link (no passwords) |
-| `sally logout` | Clear stored session |
-| `sally usage` | Check your quota and account status |
-| `sally upgrade` | Upgrade to Sally's Full Suite |
-| `sally results` | View background review results |
-| `sally mcp` | Start MCP server for IDE integration |
-
-### Premium Tools
-
-Each tool includes **1 free trial** — no account needed.
-
-| Command | Description |
-|---------|-------------|
-| `sally explain [file or code]` | Sally explains what your code actually does |
-| `sally review-pr [pr-number]` | Review a PR diff with devastating precision |
-| `sally refactor [file or code]` | Concrete refactoring suggestions with before/after code |
-| `sally brainstorm "your idea"` | Get cynical but valuable feedback on ideas |
-| `sally frontend [file]` | Roast frontend/UI code (CSS, React, HTML) |
-| `sally marketing "your copy"` | Review marketing copy and branding |
-
-All premium tools accept file paths, raw text, or piped stdin:
-
-```bash
-# File path
-sally explain src/utils/auth.ts
-
-# Piped input
-cat src/index.ts | sally explain
-
-# Raw text
-sally brainstorm "Should I rewrite this in Rust?"
-
-# PR review via GitHub CLI
-gh pr diff 42 | sally review-pr
 ```
 
 ## Roast Options
 
-```bash
+```
 sally roast [paths...] [options]
 
-Options:
   --staged              Review only staged git changes
   --diff <branch>       Compare against another branch (e.g., main)
   -m, --mode <mode>     "quick" (default) or "full_truth" (deep dive)
@@ -121,6 +80,131 @@ Options:
   --bg                  Run Full Truth in background with OS notification
 ```
 
+---
+
+<h2 align="center">Sally's Full Suite</h2>
+
+<p align="center">
+  <em>6 CLI tools. Unlimited usage. The most honest code reviewer you'll ever work with, right in your terminal.</em>
+</p>
+
+<p align="center">
+  <img src="assets/full-suite.png" alt="Sally's Full Suite" width="600" />
+</p>
+
+---
+
+### Explain
+
+<img src="assets/tool-explain.png" alt="sally explain" width="280" align="right" />
+
+Sally reads the spaghetti someone left in your codebase and translates it into plain English. Just the cold, clear truth of what it actually does.
+
+```bash
+sally explain src/utils/auth.ts
+
+# Pipe code directly
+cat legacy-module.js | sally explain
+
+# Explain the current directory
+sally explain
+```
+
+<br clear="right"/>
+
+---
+
+### Refactor
+
+<img src="assets/tool-refactor.png" alt="sally refactor" width="280" align="right" />
+
+Before and after, side by side. Sally explains why one of them is going to haunt your 3am on-call rotation.
+
+```bash
+sally refactor src/components/Dashboard.tsx
+
+# Refactor current directory
+sally refactor
+```
+
+<br clear="right"/>
+
+---
+
+### PR Review
+
+<img src="assets/tool-pr-review.png" alt="sally review-pr" width="280" align="right" />
+
+Sally reviews your PR like a senior engineer who has time, opinions, and absolutely no reason to be polite.
+
+```bash
+# Review PR #42 (requires GitHub CLI)
+sally review-pr 42
+
+# Review current branch vs main
+sally review-pr
+
+# Pipe a diff
+git diff main | sally review-pr
+```
+
+<br clear="right"/>
+
+---
+
+### Brainstorm
+
+<img src="assets/tool-brainstorm.png" alt="sally brainstorm" width="280" align="right" />
+
+Pitch your architecture idea and Sally tells you the three ways it falls apart at scale. Cheaper than a post-mortem.
+
+```bash
+sally brainstorm "Microservices for a 2-person team?"
+
+# Brainstorm about the current project
+sally brainstorm
+```
+
+<br clear="right"/>
+
+---
+
+### Frontend Review
+
+<img src="assets/tool-frontend.png" alt="sally frontend" width="280" align="right" />
+
+Sally tells you why your component re-renders on every keystroke and why your z-index is load-bearing.
+
+```bash
+sally frontend src/components/Header.tsx
+
+# Review all frontend code in a directory
+sally frontend ./src/
+```
+
+<br clear="right"/>
+
+---
+
+### Marketing Review
+
+<img src="assets/tool-marketing.png" alt="sally marketing" width="280" align="right" />
+
+Run your copy by Sally before your customers do. They won't be this constructive about it.
+
+```bash
+sally marketing "Ship faster with AI-powered code reviews"
+
+# Review your README and landing page copy
+sally marketing README.md
+```
+
+<br clear="right"/>
+
+---
+
+Every premium tool accepts **file paths**, **raw text**, or **piped stdin**. Each tool includes **1 free trial** — no account needed.
+
 ## CI/CD Integration
 
 Sally can gate your pipeline on code quality:
@@ -131,12 +215,7 @@ Sally can gate your pipeline on code quality:
   run: npx @cynicalsally/cli roast ./src/ --fail-under=5 --ci
 ```
 
-```bash
-# Any CI — fail the build if score < 6
-sally roast ./src/ --fail-under=6 --ci --json
-```
-
-The `--ci` flag produces compact output with machine-readable exit codes. The `--fail-under` flag causes a non-zero exit when the score is below your threshold.
+The `--ci` flag produces compact output with exit codes. `--fail-under` causes a non-zero exit when the score is below your threshold. Combine with `--json` for machine-readable output.
 
 ## MCP Server (IDE Integration)
 
@@ -153,7 +232,7 @@ Sally works as an MCP tool inside **Claude Code**, **Cursor**, and **Windsurf**.
 }
 ```
 
-Once configured, your AI agent can call Sally's tools directly:
+Once configured, your AI agent can use all of Sally's tools directly:
 
 | MCP Tool | What it does |
 |----------|-------------|
@@ -166,6 +245,26 @@ Once configured, your AI agent can call Sally's tools directly:
 | `sally_marketing` | Marketing copy review |
 | `sally_usage` | Check quota and account status |
 
+Run `sally mcp` in your terminal to see setup instructions.
+
+## All Commands
+
+| Command | Description |
+|---------|-------------|
+| `sally roast [paths...]` | Review files, directories, or git changes |
+| `sally explain [file]` | Explain what code actually does |
+| `sally refactor [file]` | Refactoring with before/after code |
+| `sally review-pr [pr]` | Review a PR diff |
+| `sally brainstorm "idea"` | Feedback on ideas and approaches |
+| `sally frontend [file]` | Frontend/UI code review |
+| `sally marketing "copy"` | Marketing copy review |
+| `sally login <email>` | Log in via magic link |
+| `sally logout` | Clear stored session |
+| `sally usage` | Check your quota and account status |
+| `sally upgrade` | Upgrade to Sally's Full Suite |
+| `sally results` | View background review results |
+| `sally mcp` | MCP server setup instructions |
+
 ## Pricing
 
 | | Free | Full Suite |
@@ -173,23 +272,17 @@ Once configured, your AI agent can call Sally's tools directly:
 | **Quick Roasts** | 90/month | 500/month |
 | **Full Truth** (deep dive) | — | 100/month |
 | **Premium tools** | 1 free trial each | Unlimited |
-| **MCP integration** | Roast only | All tools |
+| **MCP integration** | Roast only | All 8 tools |
+| **Background reviews** | — | `--bg` flag |
+| **Saved reports** | — | `.sally/` directory |
 | **Price** | $0 | €14.99/month |
 
 ```bash
-# Check your current quota
-sally usage
-
-# Upgrade to Full Suite
-sally upgrade
+sally usage     # Check your current quota
+sally upgrade   # Upgrade to Full Suite
 ```
 
-## How It Works
-
-1. **Your code stays private.** Files are sent over HTTPS, analyzed in-memory, and immediately discarded. Nothing is stored, logged, or used for training.
-2. **Anonymous by default.** A random device ID tracks your quota — no account required for the free tier.
-3. **Magic link auth.** Full Suite members authenticate via email magic links. No passwords.
-4. **Smart file detection.** Sally respects `.gitignore`, skips binaries and lockfiles, and caps at 50 files / 100KB per file.
+Full Suite also includes **SuperClub** — unlimited web reviews + Chrome Extension access.
 
 ## Privacy & Security
 
@@ -208,3 +301,9 @@ Found a bug? Have a feature idea? [Open an issue](https://github.com/w1ckedxt/cy
 ## License
 
 [MIT](LICENSE)
+
+---
+
+<p align="center">
+  <a href="https://cynicalsally.com">cynicalsally.com</a> · <a href="https://www.npmjs.com/package/@cynicalsally/cli">npm</a> · <a href="https://github.com/w1ckedxt/cynicalsally-cli/issues">issues</a>
+</p>
