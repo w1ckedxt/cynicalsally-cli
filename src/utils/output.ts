@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { RoastResponse, RoastIssue } from "./api.js";
+import { ApiError, type RoastResponse, type RoastIssue } from "./api.js";
 
 // ---------------------------------------------------------------------------
 // Sally ASCII Art
@@ -89,6 +89,35 @@ function printWrapped(text: string, indent = "    ", color = chalk.white): void 
   const lines = wrapText(highlighted, "", CONTENT_WIDTH);
   for (const line of lines) {
     console.log(color(indent + line));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared error handling (#6: consistent across roast + tools)
+// ---------------------------------------------------------------------------
+
+function printUpgradePrompt(): void {
+  console.log(chalk.magenta.bold("  Full Suite") + chalk.gray(" — everything Sally has to offer:\n"));
+  console.log(chalk.gray("  •") + chalk.white(" 500 Quick Roasts + 100 Full Truth deep-dives/month"));
+  console.log(chalk.gray("  •") + chalk.white(" Unlimited explain, refactor, review-pr, brainstorm, frontend, marketing"));
+  console.log(chalk.gray("  •") + chalk.white(" Sally's coffee-powered priority processing\n"));
+  console.log(chalk.gray("  Run ") + chalk.cyan("sally upgrade") + chalk.gray(" — your code isn't going to review itself.\n"));
+}
+
+export function handleApiError(err: unknown): void {
+  if (err instanceof ApiError) {
+    console.log(chalk.red(`\n${err.message}\n`));
+    if (err.statusCode === 401) {
+      console.log(chalk.gray("  I don't know you. ") + chalk.cyan("sally login your@email.com") + "\n");
+    }
+    if (err.statusCode === 402 || err.statusCode === 429) {
+      printUpgradePrompt();
+    }
+  } else if (err instanceof TypeError) {
+    console.log(chalk.red("\nCan't reach the server.") + chalk.gray(" Either I'm napping or your internet is trash.\n"));
+  } else {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.log(chalk.red(`\nSomething unexpected: ${msg}`) + chalk.gray("\nI blame your machine.\n"));
   }
 }
 
