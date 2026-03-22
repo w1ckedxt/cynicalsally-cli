@@ -10,7 +10,7 @@ const POLL_INTERVAL_MS = 5000; // 5 seconds between checks
 const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max (Stripe webhooks can be slow)
 
 export const upgradeCommand = new Command("upgrade")
-  .description("Upgrade to SuperClub CLI — unlimited roasts")
+  .description("Upgrade to Sally's Full Suite")
   .action(async () => {
     const deviceId = getDeviceId();
     const url = `${SUPERCLUB_BASE}?cli_device=${encodeURIComponent(deviceId)}`;
@@ -20,7 +20,7 @@ export const upgradeCommand = new Command("upgrade")
       const current = await checkEntitlements();
       if (current.isSuperClub || current.cliTier === "sc") {
         console.log(
-          chalk.green("\n  You're already SuperClub.") +
+          chalk.green("\n  You've already got the Full Suite.") +
             chalk.gray(" Go roast something instead of wasting my time.\n")
         );
         return;
@@ -30,7 +30,7 @@ export const upgradeCommand = new Command("upgrade")
     }
 
     console.log(
-      chalk.magenta("\n  Opening SuperClub in your browser...") +
+      chalk.magenta("\n  Opening Full Suite in your browser...") +
         chalk.gray(" Complete the checkout and I'll detect it automatically.\n")
     );
 
@@ -81,7 +81,7 @@ export const upgradeCommand = new Command("upgrade")
       console.log(chalk.white("  • 500 Quick Roasts + 100 Full Truth deep-dives/month"));
       console.log(chalk.white("  • 8 premium tools — explain, refactor, brainstorm & more"));
       console.log(chalk.white("  • MCP integration — Sally in your IDE"));
-      console.log(chalk.white("  • Unlimited web + Chrome extension (SuperClub included)"));
+      console.log(chalk.white("  • Unlimited web + Chrome extension included"));
       console.log(chalk.white("  • Sally's coffee-powered priority processing"));
       console.log();
       console.log(chalk.gray("  Try it now:"));
