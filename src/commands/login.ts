@@ -27,7 +27,7 @@ export const loginCommand = new Command("login")
           "\n\n" +
           chalk.gray("  sally login your@email.com") +
           "\n\n" +
-          chalk.gray("SuperClub members get unlimited roasts. The rest of you get a taste.\n")
+          chalk.gray("Full Suite members get unlimited roasts. The rest of you get a taste.\n")
       );
       return;
     }

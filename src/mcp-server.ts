@@ -47,7 +47,7 @@ server.tool(
       path: z.string().describe("File path"),
       content: z.string().describe("File content"),
     })).describe("Code files to review"),
-    mode: z.enum(["quick", "full_truth"]).default("quick").describe("quick = fast roast, full_truth = deep dive (SuperClub only for free tier)"),
+    mode: z.enum(["quick", "full_truth"]).default("quick").describe("quick = fast roast, full_truth = deep dive (Full Suite for unlimited)"),
     lang: z.string().default("en").describe("Response language code"),
     tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
   },
@@ -306,7 +306,7 @@ server.tool(
       const tier = entitlements.cliTier || (entitlements.isSuperClub ? "sc" : "lite");
 
       if (tier === "sc") {
-        parts.push(`**Tier:** SuperClub CLI ✓`);
+        parts.push(`**Tier:** Full Suite ✓`);
         parts.push(`**Quick Reviews:** unlimited`);
         parts.push(`**Full Truth:** unlimited`);
         parts.push(`**Premium Tools:** unlimited`);

@@ -47,12 +47,12 @@ program
     console.log(chalk.cyan("    sally frontend") + chalk.gray(" App.tsx         Roast your UI code"));
     console.log(chalk.cyan("    sally marketing") + chalk.gray(" \"copy\"         Review your copy\n"));
 
-    console.log(chalk.white.bold("  Full Truth (SuperClub):"));
+    console.log(chalk.white.bold("  Full Truth (Full Suite):"));
     console.log(chalk.cyan("    sally roast -m full_truth") + chalk.gray("      Deep dive with issues + fixes\n"));
 
     console.log(chalk.white.bold("  Account:"));
     console.log(chalk.cyan("    sally usage") + chalk.gray("                    Check your quota"));
-    console.log(chalk.cyan("    sally upgrade") + chalk.gray("                  Get SuperClub — unlimited everything"));
+    console.log(chalk.cyan("    sally upgrade") + chalk.gray("                  Get the Full Suite"));
     console.log(chalk.cyan("    sally login") + chalk.gray(" you@email.com      Link your account"));
     console.log(chalk.cyan("    sally results") + chalk.gray("                  View background reviews\n"));
 
