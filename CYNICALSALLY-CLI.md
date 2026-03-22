@@ -1,17 +1,17 @@
 # CYNICALSALLY-CLI — Project File
 
-> Source of truth voor de Sally CLI.
-> Laatste update: 2026-03-14
+> Source of truth voor de Sally CLI/MCP tool.
+> Laatste update: 2026-03-22
 
 ---
 
 ## WAT IS DE CLI?
 
-De volledige Sally CLI voor developers. Installeert via npm, draait lokaal, reviewt code met Sally's persoonlijkheid. Ondersteunt directories, individuele files, git diffs, staged changes, en CI/CD integratie.
+De volledige Sally CLI + MCP server voor developers. Installeert via npm, draait lokaal, reviewt code met Sally's persoonlijkheid. Ondersteunt directories, individuele files, git diffs, staged changes, CI/CD integratie, en 6 premium tools.
 
-**Verschil met Lite:** CLI is de volledige versie met login, git diff support, meerdere modes, en hogere quota's. Lite is de gratis proeverij.
+**Dual interface:** Dezelfde binary werkt als CLI tool (`sally roast`) en als MCP server (`sally mcp`) in Claude Code, Cursor, en Windsurf.
 
-**Funnel positie:** Lite (gratis, 3/dag) → **CLI Free (30 QR + 3 FT/maand)** → SuperClub CLI (€14.99/mo)
+**Funnel positie:** Web Lite (gratis, 3/dag) → **CLI Free (90 QR/maand)** → Full Suite CLI (€14.99/mo)
 
 ---
 
@@ -20,18 +20,22 @@ De volledige Sally CLI voor developers. Installeert via npm, draait lokaal, revi
 ```
 Sally CLI (deze repo, lokaal op dev machine)
   │
-  │  POST /api/v1/review
-  │  { files: [{path, content}], mode, deviceId, lang, tone }
+  │  POST /api/v1/review    (code reviews)
+  │  POST /api/v1/tool      (premium tools)
+  │  POST /api/v1/auth/magic-link
+  │  GET  /api/v1/entitlements
   │
   └──────> CynicalSally Backend (cynicalsally-render)
-             ├── Rate limiting (IP)
-             ├── Device/monthly quota
-             ├── Authorization (free / SC)
+             ├── Rate limiting (deviceId)
+             ├── Monthly quota enforcement
+             ├── Authorization (free / Full Suite)
              ├── Claude AI review (Haiku QR, Sonnet FT)
-             └── Sally's persoonlijkheid (server-side)
+             ├── Sally's persoonlijkheid (server-side prompts)
+             └── Stripe checkout + webhooks
 ```
 
 Alle AI logica, prompts, persoonlijkheid: 100% server-side.
+CLI heeft GEEN Stripe code. Upgrade opent browser, pollt entitlements.
 
 ---
 
@@ -39,48 +43,23 @@ Alle AI logica, prompts, persoonlijkheid: 100% server-side.
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| CLI framework (commander) | ✅ DONE | Roast command + options |
+| CLI framework (commander) | ✅ DONE | 13 commands |
 | File collection | ✅ DONE | Walk dirs, gitignore, binary skip |
-| Git diff support | ✅ DONE | Staged, unstaged, branch diff |
-| Terminal output | ✅ DONE | Score bar, issues, roast display |
+| Git diff support | ✅ DONE | Staged, unstaged, branch diff, auto-detect |
+| Terminal output | ✅ DONE | Score bar, issues, ASCII Sally, word wrap |
 | Magic link auth | ✅ DONE | `sally login` → email → session |
 | CI mode | ✅ DONE | `--json`, `--fail-under`, `--ci` |
 | Device ID persistence | ✅ DONE | `~/.sally/config.json` |
-| Backend endpoint | ✅ DONE | `/api/v1/review` bestaat (stub/mock) |
-| Echte AI reviews | ⬜ WACHT | Backend stuurt mock data tot Claude credits |
-
----
-
-## BACKEND DEPENDENCY
-
-Endpoint: `POST {API_URL}/api/v1/review`
-
-**Request:**
-```json
-{
-  "files": [{ "path": "src/app.ts", "content": "..." }],
-  "mode": "quick" | "full_truth",
-  "deviceId": "uuid",
-  "lang": "en",
-  "tone": "cynical"
-}
-```
-
-**Response:**
-```json
-{
-  "data": { "score": 7.2, "issues": [...], "actionable_fixes": [...] },
-  "voice": { "roast": "...", "bright_side": "...", "hardest_sneer": "..." },
-  "meta": { "mode": "quick", "files_reviewed": 5, "model": "haiku" },
-  "quota": { "remaining": 25, "limit": 30 }
-}
-```
-
-**Tier limits (monthly):**
-| Tier | QR | FT | Model |
-|------|----|----|-------|
-| CLI Free | 30 | 3 | Haiku + Sonnet |
-| SuperClub CLI | 500 | 100 | Sonnet-first |
+| MCP server | ✅ DONE | 8 tools via stdio, Claude Code/Cursor/Windsurf |
+| Premium tools (6x) | ✅ DONE | explain, refactor, review-pr, brainstorm, frontend, marketing |
+| Background reviews | ✅ DONE | `--bg` flag, OS notifications, `sally results` |
+| Markdown reports | ✅ DONE | Auto-saved to `.sally/` directory |
+| Flavor text caching | ✅ DONE | 1h TTL, backend-driven personality |
+| Upgrade flow | ✅ DONE | Browser checkout + entitlements polling |
+| Echte AI reviews | ✅ DONE | Haiku (QR) + Sonnet (FT) via backend |
+| README + OSS | ✅ DONE | Banner, screenshots, tool images, MIT license |
+| Code refactoring | ✅ DONE | Sally's 6 review findings addressed |
+| Full Suite branding | ✅ DONE | All public-facing text updated |
 
 ---
 
@@ -88,22 +67,51 @@ Endpoint: `POST {API_URL}/api/v1/review`
 
 | File | Doel |
 |------|------|
-| `src/commands/roast.ts` | Main roast command (file collection + API + output) |
+| `src/index.ts` | CLI entry, command registration, welcome screen |
+| `src/mcp-server.ts` | MCP server (8 tools via stdio) |
+| `src/commands/roast.ts` | Main roast command (auto-detect, API, output) |
+| `src/commands/tools.ts` | 6 premium tool commands |
+| `src/commands/upgrade.ts` | Full Suite upgrade flow (browser + polling) |
 | `src/utils/files.ts` | File collection (walk, gitignore, binary detect) |
 | `src/utils/git.ts` | Git diff parsing (staged, unstaged, branch) |
-| `src/utils/output.ts` | Terminal formatting (score bar, issues, roast) |
-| `src/utils/api.ts` | API client (submitRoast, auth endpoints) |
+| `src/utils/output.ts` | Terminal formatting + shared error handler |
+| `src/utils/api.ts` | API client (review, tools, auth, entitlements) |
 | `src/utils/config.ts` | Device ID + session persistence |
+| `src/utils/report.ts` | Markdown report generation |
+| `src/utils/flavor.ts` | Flavor text caching from backend |
+| `src/utils/background.ts` | Background worker + OS notifications |
+
+---
+
+## TIER LIMITS (monthly)
+
+| Tier | QR | FT | Tools | Model |
+|------|----|----|-------|-------|
+| CLI Free | 90 | — | 1 trial each | Haiku |
+| Full Suite CLI | 500 | 100 | Unlimited | Sonnet-first |
 
 ---
 
 ## VOLGENDE STAPPEN
 
-1. Claude API credits → backend mock data → echte reviews
-2. End-to-end test: `sally roast ./src/` met echte AI response
-3. npm publish voorbereiden
-4. CI/CD integratie documenteren (GitHub Actions, etc.)
+1. npm publish op 1 april (launch day)
+2. Stripe test → production env vars op Render (geen CLI code changes)
+3. Shifra/Render review feedback verwerken
 
 ---
 
-*CynicalSally CLI — Thomas 2026*
+## ARCHIEF
+
+### Sessie 2026-03-22
+- README volledig herschreven met tool images, screenshots, branding
+- MIT LICENSE file toegevoegd
+- Banner + 6 tool images + Full Suite banner + 3 terminal screenshots
+- Sally's 6 code review findings gefixt (-99 regels code)
+- Full Suite branding doorgevoerd in alle public-facing output
+- SC hint bug gefixt (Full Suite users zagen "1 free trial")
+- `sally mcp` command toont nu alle 8 tools ipv "coming soon"
+- Repo naar Shifra (Render) gestuurd voor review
+
+---
+
+*CynicalSally CLI — Thomas Geelens 2026*
