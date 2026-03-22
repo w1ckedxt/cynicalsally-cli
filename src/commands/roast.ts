@@ -4,12 +4,13 @@ import ora from "ora";
 import { resolve } from "node:path";
 import { statSync } from "node:fs";
 import { readFileForReview, collectFiles } from "../utils/files.js";
-import { submitRoast, ApiError } from "../utils/api.js";
-import { displayRoast, printSally } from "../utils/output.js";
+import { submitRoast } from "../utils/api.js";
+import { displayRoast, printSally, handleApiError } from "../utils/output.js";
 import { saveReport } from "../utils/report.js";
 import { askBackground, spawnBackgroundWorker, saveResult, sendNotification } from "../utils/background.js";
 import { getFlavor } from "../utils/flavor.js";
-import { showToolsHint } from "../utils/config.js";
+import { showToolsHint, getEmail } from "../utils/config.js";
+import { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles } from "../utils/git.js";
 import type { ReviewFile } from "../utils/files.js";
 
 export const roastCommand = new Command("roast")
@@ -26,10 +27,6 @@ export const roastCommand = new Command("roast")
   .option("--bg", "Run Full Truth in the background — get notified when done")
   .option("--bg-worker")
   .action(async (paths: string[], options) => {
-    // Dynamic imports for git utils (only when needed)
-    const { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles } =
-      await import("../utils/git.js");
-
     // ── Collect files ──────────────────────────────────────────────────
     let files: ReviewFile[] = [];
     let source = "";
@@ -216,8 +213,8 @@ export const roastCommand = new Command("roast")
       } else {
         displayRoast(response);
 
-        // Show premium tools hint (once per install)
-        if (mode === "quick" && showToolsHint()) {
+        // Show premium tools hint (once per install, not for Full Suite users)
+        if (mode === "quick" && !getEmail() && showToolsHint()) {
           console.log(chalk.gray("  " + "\u2500".repeat(56)));
           console.log();
           console.log(chalk.gray("  You also get ") + chalk.white("1 free trial") + chalk.gray(" of each premium tool:"));
@@ -246,26 +243,7 @@ export const roastCommand = new Command("roast")
       }
     } catch (err) {
       spinner.stop();
-
-      if (err instanceof ApiError) {
-        console.log(chalk.red(`\n${err.message}\n`));
-        if (err.statusCode === 401) {
-          console.log(chalk.gray("  I don't know you. ") + chalk.cyan("sally login your@email.com") + "\n");
-        }
-        if (err.statusCode === 402 || err.statusCode === 429) {
-          console.log(chalk.magenta.bold("  SuperClub CLI") + chalk.gray(" — everything Sally has to offer:\n"));
-          console.log(chalk.gray("  •") + chalk.white(" 500 Quick Roasts + 100 Full Truth deep-dives/month"));
-          console.log(chalk.gray("  •") + chalk.white(" Unlimited roasts on web + Chrome extension"));
-          console.log(chalk.gray("  •") + chalk.white(" Sally's coffee-powered priority processing\n"));
-          console.log(chalk.gray("  Run ") + chalk.cyan("sally upgrade") + chalk.gray(" — your code isn't going to review itself.\n"));
-        }
-      } else if (err instanceof TypeError) {
-        console.log(chalk.red("\nCan't reach the server.") + chalk.gray(" Either I'm napping or your internet is trash.\n"));
-      } else {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.log(chalk.red(`\nSomething unexpected: ${msg}`) + chalk.gray("\nI blame your machine.\n"));
-      }
-
+      handleApiError(err);
       process.exit(1);
     }
   });

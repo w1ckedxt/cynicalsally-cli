@@ -2,17 +2,19 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { resolve } from "node:path";
-import { readFileSync, statSync, existsSync } from "node:fs";
-import { submitTool, ApiError, type ToolName, type ToolResponse } from "../utils/api.js";
-import { printSally } from "../utils/output.js";
+import { readFileSync, statSync, existsSync, readdirSync } from "node:fs";
+import { extname } from "node:path";
+import { submitTool, type ToolName, type ToolResponse } from "../utils/api.js";
+import { printSally, handleApiError } from "../utils/output.js";
 import { saveToolReport } from "../utils/report.js";
-import { getFlavor } from "../utils/flavor.js";
+import { getFlavor, type Flavor } from "../utils/flavor.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
 
 const TERMINAL_WIDTH = Math.min(process.stdout.columns || 80, 90);
+const MAX_INPUT_SIZE = 500 * 1024; // 500KB
 
 function divider(): void {
   console.log(chalk.gray("  " + "\u2500".repeat(Math.min(56, TERMINAL_WIDTH - 4))));
@@ -41,11 +43,17 @@ function printWrapped(text: string, indent = "    ", color = chalk.white): void 
   for (const line of lines) console.log(color(line));
 }
 
-const MAX_INPUT_SIZE = 500 * 1024; // 500KB — matches backend limit
+// ---------------------------------------------------------------------------
+// Input resolution (#1: extracted from 6 copy-pasted patterns)
+// ---------------------------------------------------------------------------
+
+/** Format collected files into markdown for the API */
+function filesToContent(files: Array<{ path: string; content: string }>): string {
+  return files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
+}
 
 /** Read file content or return raw text argument */
 function resolveContent(input: string): string {
-  // Try as a file path first
   const resolved = resolve(input);
   try {
     if (existsSync(resolved) && statSync(resolved).isFile()) {
@@ -57,7 +65,6 @@ function resolveContent(input: string): string {
     }
   } catch (err) {
     if (err instanceof Error && err.message.includes("too large")) throw err;
-    // Not a file, treat as raw text
   }
   return input;
 }
@@ -78,7 +85,111 @@ async function readStdin(): Promise<string | null> {
   return text || null;
 }
 
-/** Display a generic tool response */
+/**
+ * Resolve input from: explicit arg → stdin → directory scan.
+ * Covers explain, refactor, and frontend commands.
+ */
+async function resolveInput(
+  input: string | undefined,
+  emptyMessage: string,
+  opts?: { allowDirectory?: boolean },
+): Promise<string> {
+  if (input) {
+    if (opts?.allowDirectory) {
+      const resolved = resolve(input);
+      try {
+        if (statSync(resolved).isDirectory()) {
+          const { collectFiles } = await import("../utils/files.js");
+          return filesToContent(collectFiles(resolved));
+        }
+      } catch { /* not a directory, fall through */ }
+    }
+    return resolveContent(input);
+  }
+
+  const stdin = await readStdin();
+  if (stdin) return stdin;
+
+  const { collectFiles } = await import("../utils/files.js");
+  const files = collectFiles(resolve("."));
+  if (files.length > 0) return filesToContent(files);
+
+  console.log(chalk.yellow(`\n${emptyMessage}`) + chalk.gray(" No code files found.\n"));
+  process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
+// Display (#2: plugin-style displayers instead of conditional hell)
+// ---------------------------------------------------------------------------
+
+type Refactor = { title: string; priority: string; pattern: string; before: string; after: string };
+type Issue = { category: string; severity: string; description: string; fix: string };
+type Rewrite = { original: string; improved: string; why: string };
+
+function displayRefactors(items: Refactor[]): void {
+  divider();
+  console.log();
+  console.log(chalk.magenta.bold("  REFACTORING SUGGESTIONS"));
+  console.log();
+  for (let i = 0; i < items.length; i++) {
+    const r = items[i];
+    const priorityColor = r.priority === "high" ? chalk.red.bold : r.priority === "medium" ? chalk.yellow.bold : chalk.gray;
+    console.log(`  ${chalk.white.bold(`${i + 1}.`)} ${priorityColor(r.priority.toUpperCase())} ${chalk.white.bold(r.title)}`);
+    console.log(`     ${chalk.gray("Pattern:")} ${chalk.cyan(r.pattern)}`);
+    if (r.before) {
+      console.log(chalk.gray("     Before:"));
+      for (const line of r.before.split("\n").slice(0, 6)) {
+        console.log(chalk.red(`       ${line}`));
+      }
+    }
+    if (r.after) {
+      console.log(chalk.gray("     After:"));
+      for (const line of r.after.split("\n").slice(0, 6)) {
+        console.log(chalk.green(`       ${line}`));
+      }
+    }
+    console.log();
+  }
+}
+
+function displayIssues(items: Issue[]): void {
+  divider();
+  console.log();
+  console.log(chalk.magenta.bold("  ISSUES FOUND"));
+  console.log();
+  for (let i = 0; i < items.length; i++) {
+    const issue = items[i];
+    const sevColor = issue.severity === "critical" ? chalk.red.bold : issue.severity === "major" ? chalk.yellow.bold : chalk.gray;
+    console.log(`  ${chalk.white.bold(`${i + 1}.`)} ${sevColor(issue.severity.toUpperCase())} ${chalk.cyan(issue.category)}`);
+    printWrapped(issue.description, "     ", chalk.gray);
+    if (issue.fix) {
+      console.log(`     ${chalk.green("\u2713")} ${chalk.green(highlightCode(issue.fix))}`);
+    }
+    console.log();
+  }
+}
+
+function displayRewrites(items: Rewrite[]): void {
+  divider();
+  console.log();
+  console.log(chalk.magenta.bold("  COPY REWRITES"));
+  console.log();
+  for (let i = 0; i < items.length; i++) {
+    const rw = items[i];
+    console.log(`  ${chalk.white.bold(`${i + 1}.`)}`);
+    console.log(chalk.red(`     Before: "${rw.original}"`));
+    console.log(chalk.green(`     After:  "${rw.improved}"`));
+    printWrapped(rw.why, "     ", chalk.gray);
+    console.log();
+  }
+}
+
+const dataDisplayers: Record<string, (items: unknown[]) => void> = {
+  refactors: (items) => displayRefactors(items as Refactor[]),
+  issues: (items) => displayIssues(items as Issue[]),
+  rewrites: (items) => displayRewrites(items as Rewrite[]),
+};
+
 function displayToolResponse(response: ToolResponse): void {
   const { voice, messages, data } = response;
 
@@ -103,14 +214,12 @@ function displayToolResponse(response: ToolResponse): void {
 
   // Messages
   if (messages.length > 0) {
-    // Intro
     const intro = messages.find((m) => m.type === "intro");
     if (intro) {
       printWrapped(intro.text, "  ", chalk.white.italic);
       console.log();
     }
 
-    // Body messages (skip intro and final)
     const body = messages.filter((m) => m.type !== "intro" && m.type !== "final");
     if (body.length > 0) {
       divider();
@@ -125,7 +234,6 @@ function displayToolResponse(response: ToolResponse): void {
       }
     }
 
-    // Final
     const final = messages.find((m) => m.type === "final");
     if (final) {
       divider();
@@ -137,68 +245,10 @@ function displayToolResponse(response: ToolResponse): void {
     }
   }
 
-  // Refactors (refactor tool)
-  const refactors = data.refactors as Array<{ title: string; priority: string; pattern: string; before: string; after: string }> | undefined;
-  if (refactors && refactors.length > 0) {
-    divider();
-    console.log();
-    console.log(chalk.magenta.bold("  REFACTORING SUGGESTIONS"));
-    console.log();
-    for (let i = 0; i < refactors.length; i++) {
-      const r = refactors[i];
-      const priorityColor = r.priority === "high" ? chalk.red.bold : r.priority === "medium" ? chalk.yellow.bold : chalk.gray;
-      console.log(`  ${chalk.white.bold(`${i + 1}.`)} ${priorityColor(r.priority.toUpperCase())} ${chalk.white.bold(r.title)}`);
-      console.log(`     ${chalk.gray("Pattern:")} ${chalk.cyan(r.pattern)}`);
-      if (r.before) {
-        console.log(chalk.gray("     Before:"));
-        for (const line of r.before.split("\n").slice(0, 6)) {
-          console.log(chalk.red(`       ${line}`));
-        }
-      }
-      if (r.after) {
-        console.log(chalk.gray("     After:"));
-        for (const line of r.after.split("\n").slice(0, 6)) {
-          console.log(chalk.green(`       ${line}`));
-        }
-      }
-      console.log();
-    }
-  }
-
-  // Issues (frontend tool)
-  const issues = data.issues as Array<{ category: string; severity: string; description: string; fix: string }> | undefined;
-  if (issues && issues.length > 0) {
-    divider();
-    console.log();
-    console.log(chalk.magenta.bold("  ISSUES FOUND"));
-    console.log();
-    for (let i = 0; i < issues.length; i++) {
-      const issue = issues[i];
-      const sevColor = issue.severity === "critical" ? chalk.red.bold : issue.severity === "major" ? chalk.yellow.bold : chalk.gray;
-      console.log(`  ${chalk.white.bold(`${i + 1}.`)} ${sevColor(issue.severity.toUpperCase())} ${chalk.cyan(issue.category)}`);
-      printWrapped(issue.description, "     ", chalk.gray);
-      if (issue.fix) {
-        console.log(`     ${chalk.green("\u2713")} ${chalk.green(highlightCode(issue.fix))}`);
-      }
-      console.log();
-    }
-  }
-
-  // Rewrites (marketing tool)
-  const rewrites = data.rewrites as Array<{ original: string; improved: string; why: string }> | undefined;
-  if (rewrites && rewrites.length > 0) {
-    divider();
-    console.log();
-    console.log(chalk.magenta.bold("  COPY REWRITES"));
-    console.log();
-    for (let i = 0; i < rewrites.length; i++) {
-      const rw = rewrites[i];
-      console.log(`  ${chalk.white.bold(`${i + 1}.`)}`);
-      console.log(chalk.red(`     Before: "${rw.original}"`));
-      console.log(chalk.green(`     After:  "${rw.improved}"`));
-      printWrapped(rw.why, "     ", chalk.gray);
-      console.log();
-    }
+  // Data sections via displayer map
+  for (const [key, displayer] of Object.entries(dataDisplayers)) {
+    const items = data[key] as unknown[] | undefined;
+    if (items && items.length > 0) displayer(items);
   }
 
   // Bright side & hardest sneer
@@ -223,34 +273,18 @@ function displayToolResponse(response: ToolResponse): void {
   }
 }
 
-/** Handle tool errors with Sally's personality */
-function handleToolError(err: unknown): void {
-  if (err instanceof ApiError) {
-    console.log(chalk.red(`\n${err.message}\n`));
-    if (err.statusCode === 429) {
-      console.log(chalk.magenta.bold("  SuperClub CLI") + chalk.gray(" — unlock all of Sally's tools:\n"));
-      console.log(chalk.gray("  \u2022") + chalk.white(" Unlimited explain, refactor, review-pr, brainstorm, frontend, marketing"));
-      console.log(chalk.gray("  \u2022") + chalk.white(" 500 Quick Roasts + 100 Full Truth deep-dives/month"));
-      console.log(chalk.gray("  \u2022") + chalk.white(" Sally's premium priority processing\n"));
-      console.log(chalk.gray("  Run ") + chalk.cyan("sally upgrade") + chalk.gray(" — you know you want to.\n"));
-    }
-  } else if (err instanceof TypeError) {
-    console.log(chalk.red("\nCan't reach the server.") + chalk.gray(" Either I'm napping or your internet is trash.\n"));
-  } else {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.log(chalk.red(`\nSomething unexpected: ${msg}`) + chalk.gray("\nI blame your machine.\n"));
-  }
-}
+// ---------------------------------------------------------------------------
+// Tool runner (#4: type-safe spinner key via keyof Flavor)
+// ---------------------------------------------------------------------------
 
-/** Generic tool runner */
 async function runTool(
   toolName: ToolName,
   content: string,
-  spinnerKey: string,
+  spinnerKey: keyof Flavor,
   options: { lang?: string; json?: boolean },
 ): Promise<void> {
   const f = getFlavor();
-  const spinnerText = (f as unknown as Record<string, string>)[spinnerKey] || "Processing...";
+  const spinnerText = f[spinnerKey] || "Processing...";
 
   printSally();
   console.log();
@@ -271,22 +305,21 @@ async function runTool(
     } else {
       displayToolResponse(response);
 
-      // Auto-save tool report to .sally/ directory
       const savedPath = saveToolReport(response);
       if (savedPath) {
-        console.log(chalk.gray("  💾 ") + chalk.gray("Saved to ") + chalk.cyan(savedPath));
+        console.log(chalk.gray("  \uD83D\uDCBE ") + chalk.gray("Saved to ") + chalk.cyan(savedPath));
         console.log();
       }
     }
   } catch (err) {
     spinner.stop();
-    handleToolError(err);
+    handleApiError(err);
     process.exit(1);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Commands
+// Commands (#1: explain, refactor, frontend use resolveInput)
 // ---------------------------------------------------------------------------
 
 export const explainCommand = new Command("explain")
@@ -295,27 +328,7 @@ export const explainCommand = new Command("explain")
   .option("--lang <lang>", "Response language", "en")
   .option("--json", "Output raw JSON")
   .action(async (input: string | undefined, options) => {
-    let content = "";
-
-    if (input) {
-      content = resolveContent(input);
-    } else {
-      const stdin = await readStdin();
-      if (stdin) {
-        content = stdin;
-      } else {
-        // No input — scan current directory
-        const { collectFiles } = await import("../utils/files.js");
-        const files = collectFiles(resolve("."));
-        if (files.length > 0) {
-          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
-        } else {
-          console.log(chalk.yellow("\nNothing to explain here.") + chalk.gray(" No code files found.\n"));
-          process.exit(1);
-        }
-      }
-    }
-
+    const content = await resolveInput(input, "Nothing to explain here.");
     await runTool("explain", content, "tool_spinner_explain", options);
   });
 
@@ -327,26 +340,20 @@ export const reviewPrCommand = new Command("review-pr")
   .action(async (prNumber: string | undefined, options) => {
     let content = "";
 
-    // Try stdin first
     const stdin = await readStdin();
     if (stdin) {
       content = stdin;
     } else if (prNumber) {
-      // If it's a file, read it
       const resolved = resolve(prNumber);
       try {
         if (existsSync(resolved) && statSync(resolved).isFile()) {
           content = readFileSync(resolved, "utf-8");
         } else {
-          // Try to get PR diff from git
           const { execSync } = await import("node:child_process");
           try {
-            // Try `gh pr diff` first (GitHub CLI)
-            // Sanitize PR number to prevent command injection
             const safePr = String(prNumber).replace(/[^0-9]/g, "");
             content = execSync(`gh pr diff ${safePr}`, { encoding: "utf-8", maxBuffer: 5_000_000 });
           } catch {
-            // Fallback: try getting diff vs main
             try {
               content = execSync(`git diff main...HEAD`, { encoding: "utf-8", maxBuffer: 5_000_000 });
             } catch {
@@ -362,7 +369,6 @@ export const reviewPrCommand = new Command("review-pr")
         process.exit(1);
       }
     } else {
-      // No args: try to get current branch diff vs main
       const { execSync } = await import("node:child_process");
       try {
         content = execSync("git diff main...HEAD", { encoding: "utf-8", maxBuffer: 5_000_000 });
@@ -392,27 +398,7 @@ export const refactorCommand = new Command("refactor")
   .option("--lang <lang>", "Response language", "en")
   .option("--json", "Output raw JSON")
   .action(async (input: string | undefined, options) => {
-    let content = "";
-
-    if (input) {
-      content = resolveContent(input);
-    } else {
-      const stdin = await readStdin();
-      if (stdin) {
-        content = stdin;
-      } else {
-        // No input — scan current directory
-        const { collectFiles } = await import("../utils/files.js");
-        const files = collectFiles(resolve("."));
-        if (files.length > 0) {
-          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
-        } else {
-          console.log(chalk.yellow("\nNothing to refactor here.") + chalk.gray(" No code files found.\n"));
-          process.exit(1);
-        }
-      }
-    }
-
+    const content = await resolveInput(input, "Nothing to refactor here.");
     await runTool("refactor", content, "tool_spinner_refactor", options);
   });
 
@@ -424,54 +410,26 @@ export const brainstormCommand = new Command("brainstorm")
   .action(async (descParts: string[], options) => {
     let content = "";
 
-    // Check if input refers to "this project/code" — scan directory for context
     const rawInput = descParts.join(" ").toLowerCase();
     const needsProjectContext = descParts.length === 0 ||
-      rawInput.includes("this project") ||
-      rawInput.includes("this code") ||
-      rawInput.includes("this repo") ||
-      rawInput.includes("this app") ||
-      rawInput.includes("dit project") ||
-      rawInput.length < 20;
+      rawInput.includes("this project") || rawInput.includes("this code") ||
+      rawInput.includes("this repo") || rawInput.includes("this app") ||
+      rawInput.includes("dit project") || rawInput.length < 20;
 
     if (descParts.length > 0 && !needsProjectContext) {
-      // Check if first arg is a file
-      const firstArg = descParts[0];
-      const resolved = resolve(firstArg);
-      try {
-        if (descParts.length === 1 && existsSync(resolved) && statSync(resolved).isFile()) {
-          content = readFileSync(resolved, "utf-8");
-        } else {
-          content = descParts.join(" ");
-        }
-      } catch {
-        content = descParts.join(" ");
-      }
-    } else if (needsProjectContext) {
-      // Scan current directory and include as context
+      content = resolveContent(descParts.length === 1 ? descParts[0] : descParts.join(" "));
+    } else {
       const { collectFiles } = await import("../utils/files.js");
       const files = collectFiles(resolve("."));
-      const userPrompt = descParts.length > 0 ? descParts.join(" ") : "What do you think of this project?";
-      if (files.length > 0) {
-        content = `${userPrompt}\n\nHere's the project code:\n\n${files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n")}`;
-      } else {
-        content = userPrompt;
-      }
-    } else {
-      const stdin = await readStdin();
-      if (stdin) {
-        content = stdin;
-      } else {
-        // No input at all — scan current directory as context
-        const { collectFiles: collectBs } = await import("../utils/files.js");
-        const files = collectBs(resolve("."));
-        if (files.length > 0) {
-          content = "What do you think of this project?\n\n" + files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
-        } else {
-          console.log(chalk.yellow("\nNothing here to brainstorm about.") + chalk.gray(" No files found.\n"));
-          process.exit(1);
-        }
-      }
+      const prompt = descParts.length > 0 ? descParts.join(" ") : "What do you think of this project?";
+      content = files.length > 0
+        ? `${prompt}\n\nHere's the project code:\n\n${filesToContent(files)}`
+        : prompt;
+    }
+
+    if (!content.trim()) {
+      console.log(chalk.yellow("\nNothing here to brainstorm about.") + chalk.gray(" No files found.\n"));
+      process.exit(1);
     }
 
     await runTool("brainstorm", content, "tool_spinner_brainstorm", options);
@@ -483,41 +441,7 @@ export const frontendCommand = new Command("frontend")
   .option("--lang <lang>", "Response language", "en")
   .option("--json", "Output raw JSON")
   .action(async (input: string | undefined, options) => {
-    let content = "";
-
-    if (input) {
-      const resolved = resolve(input);
-      try {
-        const stat = statSync(resolved);
-        if (stat.isDirectory()) {
-          // Collect frontend files from directory
-          const { collectFiles } = await import("../utils/files.js");
-          const files = collectFiles(resolved);
-          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
-        } else {
-          content = readFileSync(resolved, "utf-8");
-        }
-      } catch {
-        // Treat as raw code
-        content = input;
-      }
-    } else {
-      const stdin = await readStdin();
-      if (stdin) {
-        content = stdin;
-      } else {
-        // No input — scan current directory
-        const { collectFiles: collectFrontend } = await import("../utils/files.js");
-        const files = collectFrontend(resolve("."));
-        if (files.length > 0) {
-          content = files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join("\n\n");
-        } else {
-          console.log(chalk.yellow("\nNo frontend code found here.\n"));
-          process.exit(1);
-        }
-      }
-    }
-
+    const content = await resolveInput(input, "No frontend code found here.", { allowDirectory: true });
     await runTool("frontend_review", content, "tool_spinner_frontend", options);
   });
 
@@ -530,58 +454,39 @@ export const marketingCommand = new Command("marketing")
     let content = "";
 
     if (inputParts.length > 0) {
-      const firstArg = inputParts[0];
-      const resolved = resolve(firstArg);
-      try {
-        if (inputParts.length === 1 && existsSync(resolved) && statSync(resolved).isFile()) {
-          content = readFileSync(resolved, "utf-8");
-        } else {
-          content = inputParts.join(" ");
-        }
-      } catch {
-        content = inputParts.join(" ");
-      }
+      content = resolveContent(inputParts.length === 1 ? inputParts[0] : inputParts.join(" "));
     } else {
       const stdin = await readStdin();
       if (stdin) {
         content = stdin;
       } else {
-        // No input — scan for marketing-relevant files (HTML, README, package.json, CSS, txt, md)
-        const { collectFiles: collectMkt } = await import("../utils/files.js");
-        const { readFileSync: readFs, existsSync: existsFs, readdirSync: readDir } = await import("node:fs");
-        const { resolve: resolvePath, extname: getExt } = await import("node:path");
+        // Scan for marketing-relevant files
         const found: string[] = [];
         const marketingExts = new Set([".html", ".htm", ".md", ".txt", ".css"]);
         const marketingNames = new Set(["README.md", "readme.md", "package.json"]);
 
-        // Grab specific named files
         for (const f of marketingNames) {
-          const fp = resolvePath(".", f);
-          if (existsFs(fp)) {
-            try {
-              found.push(`### ${f}\n\`\`\`\n${readFs(fp, "utf-8").slice(0, 10_000)}\n\`\`\``);
-            } catch { /* skip */ }
+          const fp = resolve(".", f);
+          if (existsSync(fp)) {
+            try { found.push(`### ${f}\n\`\`\`\n${readFileSync(fp, "utf-8").slice(0, 10_000)}\n\`\`\``); } catch { /* skip */ }
           }
         }
 
-        // Grab all HTML/CSS/MD/TXT files in root
         try {
-          for (const entry of readDir(".", { withFileTypes: true })) {
-            if (entry.isFile() && marketingExts.has(getExt(entry.name).toLowerCase()) && !marketingNames.has(entry.name)) {
-              try {
-                found.push(`### ${entry.name}\n\`\`\`\n${readFs(resolvePath(".", entry.name), "utf-8").slice(0, 10_000)}\n\`\`\``);
-              } catch { /* skip */ }
+          for (const entry of readdirSync(".", { withFileTypes: true })) {
+            if (entry.isFile() && marketingExts.has(extname(entry.name).toLowerCase()) && !marketingNames.has(entry.name)) {
+              try { found.push(`### ${entry.name}\n\`\`\`\n${readFileSync(resolve(".", entry.name), "utf-8").slice(0, 10_000)}\n\`\`\``); } catch { /* skip */ }
             }
           }
         } catch { /* skip */ }
+
         if (found.length > 0) {
           content = "Review the marketing copy and branding in this project:\n\n" + found.join("\n\n");
         } else {
           printSally();
           console.log();
           console.log(chalk.red("  I don't know what I'm looking at."));
-          console.log(chalk.gray("  No README, no landing page, no package.json — how am I supposed to"));
-          console.log(chalk.gray("  give you marketing advice on a project with no public face?\n"));
+          console.log(chalk.gray("  No README, no landing page, no package.json.\n"));
           console.log(chalk.gray("  Give me something to work with:"));
           console.log(chalk.cyan('    sally marketing "Your tagline here"'));
           console.log(chalk.cyan("    sally marketing README.md\n"));
