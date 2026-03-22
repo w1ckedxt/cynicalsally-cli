@@ -265,24 +265,14 @@ Run `sally mcp` in your terminal to see setup instructions.
 | `sally results` | View background review results |
 | `sally mcp` | MCP server setup instructions |
 
-## Pricing
+## Free to Use
 
-| | Free | Full Suite |
-|---|---|---|
-| **Quick Roasts** | 90/month | 500/month |
-| **Full Truth** (deep dive) | | 100/month |
-| **Premium tools** | 1 free trial each | Unlimited |
-| **MCP integration** | Roast only | All 8 tools |
-| **Background reviews** | | `--bg` flag |
-| **Saved reports** | | `.sally/` directory |
-| **Price** | $0 | €14.99/month |
+90 free roasts per month, no account needed. Every premium tool includes a free trial.
 
 ```bash
-sally usage     # Check your current quota
-sally upgrade   # Upgrade to Full Suite
+sally usage     # Check your quota
+sally upgrade   # Unlock the Full Suite
 ```
-
-Full Suite includes **SuperClub**: unlimited web reviews + Chrome Extension.
 
 ## Privacy & Security
 
