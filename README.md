@@ -5,7 +5,7 @@
 <h1 align="center">@cynicalsally/cli</h1>
 
 <p align="center">
-  <strong>Cynical Sally CLI/MCP</strong><br/>
+  <strong>Brutally honest code reviews. Terminal + IDE.</strong><br/>
   <em>Because "You're absolutely right" is probably absolutely wrong.</em>
 </p>
 
