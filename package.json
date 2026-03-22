@@ -2,7 +2,7 @@
   "name": "@cynicalsally/cli",
   "version": "0.1.0",
   "description": "Brutally honest code reviews. Because 'You're absolutely right' is probably absolutely wrong.",
-  "author": "CynicalSally",
+  "author": "Thomas Geelens",
   "license": "MIT",
   "type": "module",
   "bin": {
