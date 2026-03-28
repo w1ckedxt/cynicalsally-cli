@@ -227,7 +227,17 @@ Gate your pipeline on code quality:
 
 ## MCP Server
 
-Works inside **Claude Code**, **Cursor**, and **Windsurf**. Add to your MCP config:
+Sally works as an MCP server inside **Claude Code**, **Cursor**, and **Windsurf**.
+
+### Claude Code
+
+```bash
+claude mcp add cynical-sally -- npx @cynicalsally/cli mcp
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project):
 
 ```json
 {
@@ -240,7 +250,22 @@ Works inside **Claude Code**, **Cursor**, and **Windsurf**. Add to your MCP conf
 }
 ```
 
-Available tools:
+### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "cynical-sally": {
+      "command": "npx",
+      "args": ["@cynicalsally/cli", "mcp"]
+    }
+  }
+}
+```
+
+### Available tools
 
 | MCP Tool | What it does |
 |----------|-------------|

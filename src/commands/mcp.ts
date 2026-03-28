@@ -6,29 +6,41 @@ export const mcpCommand = new Command("mcp")
   .action(async () => {
     if (process.stdout.isTTY) {
       // Running in a terminal — show setup instructions instead of starting stdio server
+      const mcpConfig = JSON.stringify(
+        {
+          mcpServers: {
+            "cynical-sally": {
+              command: "npx",
+              args: ["@cynicalsally/cli", "mcp"],
+            },
+          },
+        },
+        null,
+        2
+      );
+
       console.log(
         chalk.magenta("\n  MCP Server") +
           chalk.gray(" — Sally as a tool in your IDE\n")
       );
-      console.log(chalk.white.bold("  Add this to your MCP config:\n"));
-      console.log(
-        chalk.cyan(
-          "  " +
-            JSON.stringify(
-              {
-                mcpServers: {
-                  "cynical-sally": {
-                    command: "npx",
-                    args: ["@cynicalsally/cli", "mcp"],
-                  },
-                },
-              },
-              null,
-              2
-            ).replace(/\n/g, "\n  ")
-        )
-      );
+
+      // Claude Code
+      console.log(chalk.white.bold("  Claude Code"));
+      console.log(chalk.cyan("  claude mcp add cynical-sally -- npx @cynicalsally/cli mcp\n"));
+
+      // Cursor
+      console.log(chalk.white.bold("  Cursor"));
+      console.log(chalk.gray("  Add to ~/.cursor/mcp.json (global) or .cursor/mcp.json (per project):\n"));
+      console.log(chalk.cyan("  " + mcpConfig.replace(/\n/g, "\n  ")));
       console.log();
+
+      // Windsurf
+      console.log(chalk.white.bold("  Windsurf"));
+      console.log(chalk.gray("  Add to ~/.codeium/windsurf/mcp_config.json:\n"));
+      console.log(chalk.cyan("  " + mcpConfig.replace(/\n/g, "\n  ")));
+      console.log();
+
+      // Tools
       console.log(chalk.white.bold("  Available tools:"));
       console.log(chalk.gray("  sally_roast       ") + chalk.white("Code review with score, issues, and fixes"));
       console.log(chalk.gray("  sally_explain     ") + chalk.white("Explain code snippets or files"));
@@ -39,7 +51,6 @@ export const mcpCommand = new Command("mcp")
       console.log(chalk.gray("  sally_marketing   ") + chalk.white("Marketing copy review"));
       console.log(chalk.gray("  sally_usage       ") + chalk.white("Check quota and account status"));
       console.log();
-      console.log(chalk.gray("  Works with Claude Code, Cursor, and Windsurf.\n"));
       return;
     }
 
