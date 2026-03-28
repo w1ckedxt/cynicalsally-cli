@@ -1,7 +1,7 @@
 # CYNICALSALLY-CLI — Project File
 
 > Source of truth voor de Sally CLI/MCP tool.
-> Laatste update: 2026-03-22
+> Laatste update: 2026-03-28
 
 ---
 
@@ -60,6 +60,11 @@ CLI heeft GEEN Stripe code. Upgrade opent browser, pollt entitlements.
 | README + OSS | ✅ DONE | Banner, screenshots, tool images, MIT license |
 | Code refactoring | ✅ DONE | Sally's 6 review findings addressed |
 | Full Suite branding | ✅ DONE | All public-facing text updated |
+| NPM published | ✅ DONE | @cynicalsally/cli@0.1.0 live on NPM |
+| Per-IDE MCP docs | ✅ DONE | Claude Code, Cursor, Windsurf setup instructions |
+| Product Hunt draft | ✅ DONE | Scheduled 1 april, Render collab |
+| JSON-LD pricing | ✅ DONE | Crawler/AI-readable pricing (render repo) |
+| Chrome Extension | ✅ DONE | Published on Chrome Web Store |
 
 ---
 
@@ -94,13 +99,24 @@ CLI heeft GEEN Stripe code. Upgrade opent browser, pollt entitlements.
 
 ## VOLGENDE STAPPEN
 
-1. npm publish op 1 april (launch day)
-2. Stripe test → production env vars op Render (geen CLI code changes)
-3. Shifra/Render review feedback verwerken
+1. Safari Extension bouwen
+2. Downloads badge weer aanzetten zodra NPM data toont
+3. PH launch 1 april 10:00 AM PT + Render collab
+4. Sitemap herindienen bij Google Search Console
+5. Crawler pricing testen (Perplexity, etc.)
 
 ---
 
 ## ARCHIEF
+
+### Sessie 2026-03-28
+- NPM published: @cynicalsally/cli@0.1.0 live
+- Per-IDE MCP setup instructies (Cursor, Claude Code, Windsurf)
+- Product Hunt draft compleet, scheduled 1 april + Render collab
+- JSON-LD structured pricing voor crawlers/AI (Full Suite + SuperClub)
+- GitHub badges gefixed (license via GitHub endpoint, downloads uitgecommenteerd)
+- Chrome Extension published op Chrome Web Store
+- Eerste betalende klant + eerste downloads zonder marketing
 
 ### Sessie 2026-03-22
 - README volledig herschreven met tool images, screenshots, branding
