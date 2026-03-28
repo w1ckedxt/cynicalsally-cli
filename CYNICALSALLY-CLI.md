@@ -15,6 +15,16 @@ De volledige Sally CLI + MCP server voor developers. Installeert via npm, draait
 
 ---
 
+## GIT REGELS
+
+```
+⛔ NOOIT Co-Authored-By of andere Claude/AI attributie in commits
+⛔ NOOIT jezelf als co-author vermelden
+✅ Commits zijn van Thomas — punt.
+```
+
+---
+
 ## ARCHITECTUUR
 
 ```
