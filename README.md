@@ -10,9 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/v/@cynicalsally/cli.svg?color=brightgreen" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/dm/@cynicalsally/cli.svg?color=brightgreen" alt="npm downloads" /></a>
-  <a href="https://github.com/w1ckedxt/cynicalsally-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@cynicalsally/cli.svg?color=brightgreen" alt="license" /></a>
+  <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/v/@cynicalsally/cli.svg" alt="npm version" /></a>
+  <a href="https://github.com/w1ckedxt/cynicalsally-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/w1ckedxt/cynicalsally-cli.svg" alt="license" /></a>
 </p>
 
 ---
