@@ -17,6 +17,7 @@ import {
   frontendCommand,
   marketingCommand,
 } from "./commands/tools.js";
+import { verdictCommand } from "./commands/verdict.js";
 import { printSally } from "./utils/output.js";
 
 const program = new Command();
@@ -37,7 +38,8 @@ program
     console.log(chalk.white.bold("  Free (90 Quick Roasts/month):"));
     console.log(chalk.cyan("    sally roast") + chalk.gray("                    Roast your code"));
     console.log(chalk.cyan("    sally roast --staged") + chalk.gray("           Roast staged changes"));
-    console.log(chalk.cyan("    sally roast src/") + chalk.gray("              Roast a directory\n"));
+    console.log(chalk.cyan("    sally roast src/") + chalk.gray("              Roast a directory"));
+    console.log(chalk.cyan("    sally verdict") + chalk.gray("                  Judge your repo + get a badge\n"));
 
     console.log(chalk.white.bold("  Premium Tools (1 free trial each):"));
     console.log(chalk.cyan("    sally explain") + chalk.gray(" file.ts          What does this code do?"));
@@ -61,6 +63,7 @@ program
   });
 
 program.addCommand(roastCommand);
+program.addCommand(verdictCommand);
 program.addCommand(loginCommand);
 program.addCommand(logoutCommand);
 program.addCommand(usageCommand);

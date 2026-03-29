@@ -152,6 +152,55 @@ export async function submitTool(params: ToolRequest): Promise<ToolResponse> {
   return (await res.json()) as ToolResponse;
 }
 
+// ---------------------------------------------------------------------------
+// Verdict
+// ---------------------------------------------------------------------------
+
+export interface VerdictRequest {
+  type: "code";
+  files: ReviewFile[];
+  mode: "quick" | "full_truth";
+  tone: string;
+  lang: string;
+  repoOwner: string;
+  repoName: string;
+}
+
+export interface VerdictResponse extends RoastResponse {
+  verdict: {
+    label: string;
+    badge_url: string;
+    badge_markdown: string;
+    shields_badge_markdown: string;
+  };
+  previous: {
+    score: number;
+    label: string;
+    created_at: string;
+  } | null;
+}
+
+/** Submit a repo verdict via the Render backend */
+export async function submitVerdict(params: VerdictRequest): Promise<VerdictResponse> {
+  const deviceId = getDeviceId();
+  const url = `${API_BASE}/api/v1/verdict`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...params, deviceId }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    const message = (body as { error?: string }).error || `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return (await res.json()) as VerdictResponse;
+}
+
 /** Request magic link login */
 export async function requestMagicLink(email: string): Promise<{ sent: boolean; message?: string; error?: string }> {
   const deviceId = getDeviceId();
