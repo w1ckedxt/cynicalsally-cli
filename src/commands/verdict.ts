@@ -76,31 +76,37 @@ export const verdictCommand = new Command("verdict")
         }
         source = paths.join(", ");
       } else {
-        // Auto-detect: staged → unstaged → last commit → directory scan
+        // Auto-detect cascade: staged → unstaged → last commit → directory scan
+        // Each tier checked explicitly with clear feedback
         const staged = getStagedChanges();
         if (staged.trim()) {
           files = parseDiffToFiles(staged);
           source = "staged changes";
-        } else {
+        }
+
+        if (files.length === 0) {
           const unstaged = getUnstagedChanges();
           if (unstaged.trim()) {
             files = parseDiffToFiles(unstaged);
             source = "unstaged changes";
-          } else {
-            try {
-              const lastCommit = getLastCommitDiff();
-              if (lastCommit.trim()) {
-                files = parseDiffToFiles(lastCommit);
-                source = "last commit";
-              }
-            } catch {
-              // no commits yet
-            }
-            if (files.length === 0) {
-              files = collectFiles(process.cwd());
-              source = "directory scan";
-            }
           }
+        }
+
+        if (files.length === 0) {
+          try {
+            const lastCommit = getLastCommitDiff();
+            if (lastCommit.trim()) {
+              files = parseDiffToFiles(lastCommit);
+              source = "last commit";
+            }
+          } catch {
+            // no commits yet — fall through to directory scan
+          }
+        }
+
+        if (files.length === 0) {
+          files = collectFiles(process.cwd());
+          source = "directory scan";
         }
       }
 
@@ -165,9 +171,13 @@ export const verdictCommand = new Command("verdict")
       }
 
       // ── CI/fail-under ──
-      const score = response.data?.score ?? 0;
-      if (options.ci || options.failUnder != null) {
-        if (options.failUnder != null && score < options.failUnder) {
+      const score = response.data?.score;
+      if (options.failUnder != null) {
+        if (score == null) {
+          console.log(chalk.red("\n  No score returned. Failing as a precaution.\n"));
+          process.exit(1);
+        }
+        if (score < options.failUnder) {
           process.exit(1);
         }
       }
