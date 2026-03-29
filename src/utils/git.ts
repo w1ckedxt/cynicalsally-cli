@@ -49,6 +49,9 @@ export function getBranchDiff(branch: string): string {
 /**
  * Detect GitHub remote from git config.
  * Handles: https://github.com/owner/repo.git, git@github.com:owner/repo.git
+ *
+ * Owner/repo are lowercased because GitHub repos are case-insensitive
+ * and our badge DB normalizes to lowercase for consistent lookups.
  */
 export function getGitHubRemote(): { owner: string; repo: string } | null {
   try {
@@ -61,8 +64,8 @@ export function getGitHubRemote(): { owner: string; repo: string } | null {
     const sshMatch = url.match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/);
     if (sshMatch) return { owner: sshMatch[1].toLowerCase(), repo: sshMatch[2].toLowerCase() };
 
-    // HTTPS: https://github.com/owner/repo.git
-    const httpsMatch = url.match(/github\.com\/([^/]+)\/([^/.]+?)(?:\.git)?(?:\/.*)?$/);
+    // HTTPS: https://github.com/owner/repo.git (strip trailing paths/slashes)
+    const httpsMatch = url.match(/github\.com\/([^/]+)\/([^/.]+?)(?:\.git)?(?:\/[^\s]*)?$/);
     if (httpsMatch) return { owner: httpsMatch[1].toLowerCase(), repo: httpsMatch[2].toLowerCase() };
 
     return null;
