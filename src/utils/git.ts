@@ -47,6 +47,31 @@ export function getBranchDiff(branch: string): string {
 }
 
 /**
+ * Detect GitHub remote from git config.
+ * Handles: https://github.com/owner/repo.git, git@github.com:owner/repo.git
+ */
+export function getGitHubRemote(): { owner: string; repo: string } | null {
+  try {
+    const url = execSync("git remote get-url origin", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+
+    // SSH: git@github.com:owner/repo.git
+    const sshMatch = url.match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+    if (sshMatch) return { owner: sshMatch[1].toLowerCase(), repo: sshMatch[2].toLowerCase() };
+
+    // HTTPS: https://github.com/owner/repo.git
+    const httpsMatch = url.match(/github\.com\/([^/]+)\/([^/.]+?)(?:\.git)?(?:\/.*)?$/);
+    if (httpsMatch) return { owner: httpsMatch[1].toLowerCase(), repo: httpsMatch[2].toLowerCase() };
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse a unified diff into a files array for the API.
  *
  * Extracts the changed files and their full content from the diff.
