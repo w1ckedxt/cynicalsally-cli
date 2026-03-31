@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { clearSession, getEmail } from "../utils/config.js";
 
 export const logoutCommand = new Command("logout")
-  .description("Log out and clear stored session")
+  .description("Clear stored local account info")
   .action(() => {
     const existing = getEmail();
     if (!existing) {

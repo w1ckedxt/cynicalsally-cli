@@ -47,6 +47,18 @@ npx @cynicalsally/cli roast ./src/
 
 **Requirements:** Node.js 18+
 
+## Privacy Notes
+
+- Directory scans and repo reviews send selected code to the Sally backend for analysis.
+- Only review code you are allowed to upload.
+- Sensitive files such as `.env`, SSH keys, certs, and common credential files are skipped, but you should still avoid scanning secrets on purpose.
+- Local reports and cached results may be written to `.sally/` in your project or `~/.sally/` on your machine.
+- Add `.sally/` to your `.gitignore` and do not commit review artifacts.
+
+```gitignore
+.sally/
+```
+
 ## Quick Start
 
 ```bash

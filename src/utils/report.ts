@@ -8,7 +8,7 @@ const REPORT_DIR = ".sally";
 function ensureReportDir(): string {
   const dir = join(process.cwd(), REPORT_DIR);
   if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   return dir;
 }
@@ -106,7 +106,7 @@ export function saveReport(response: RoastResponse, source: string): string | nu
 
     appendVoiceFooter(lines, voice);
 
-    writeFileSync(filepath, lines.join("\n"), "utf-8");
+    writeFileSync(filepath, lines.join("\n"), { encoding: "utf-8", mode: 0o600 });
     return filepath;
   } catch {
     return null;
@@ -202,7 +202,7 @@ export function saveToolReport(response: ToolResponse): string | null {
 
     appendVoiceFooter(lines, response.voice);
 
-    writeFileSync(filepath, lines.join("\n"), "utf-8");
+    writeFileSync(filepath, lines.join("\n"), { encoding: "utf-8", mode: 0o600 });
     return filepath;
   } catch {
     return null;

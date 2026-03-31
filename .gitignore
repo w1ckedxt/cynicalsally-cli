@@ -16,6 +16,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.sally/
 
 # Debug logs
 npm-debug.log*
