@@ -18,6 +18,7 @@ Thumbs.db
 .env.*.local
 .sally/
 CYNICALSALLY-CLI.md
+FUTURE-TODO.md
 
 # Debug logs
 npm-debug.log*
