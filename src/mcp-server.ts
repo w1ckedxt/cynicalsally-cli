@@ -300,7 +300,7 @@ server.tool(
       const parts: string[] = [];
       parts.push("## Sally Account Status\n");
 
-      if (email) parts.push(`**Email:** ${email}`);
+      if (email) parts.push(`**Email (local):** ${email}`);
       parts.push(`**Device:** ${deviceId.slice(0, 8)}...`);
 
       const tier = entitlements.cliTier || (entitlements.isSuperClub ? "sc" : "lite");

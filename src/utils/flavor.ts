@@ -121,7 +121,7 @@ export function getFlavor(): Flavor {
 export function cacheFlavor(flavor: Flavor): void {
   try {
     if (!existsSync(SALLY_DIR)) {
-      mkdirSync(SALLY_DIR, { recursive: true });
+      mkdirSync(SALLY_DIR, { recursive: true, mode: 0o700 });
     }
     const cached: CachedFlavor = { flavor, cachedAt: Date.now() };
     writeFileSync(FLAVOR_CACHE, JSON.stringify(cached), { mode: 0o600 });

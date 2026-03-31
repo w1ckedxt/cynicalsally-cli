@@ -33,8 +33,97 @@ const SKIP_FILES = new Set([
   ".DS_Store", "Thumbs.db",
 ]);
 
+const SENSITIVE_NAMES = new Set([
+  ".env",
+  ".envrc",
+  ".npmrc",
+  ".pypirc",
+  "id_rsa",
+  "id_dsa",
+  "id_ecdsa",
+  "id_ed25519",
+  "credentials",
+  "credentials.json",
+  "secrets",
+  "secrets.json",
+  ".netrc",
+]);
+
+const SENSITIVE_DIRS = new Set([
+  ".aws",
+  ".ssh",
+  ".gnupg",
+  ".sally",
+]);
+
+const SENSITIVE_EXTENSIONS = new Set([
+  ".pem",
+  ".key",
+  ".p12",
+  ".pfx",
+  ".crt",
+  ".cer",
+  ".csr",
+  ".der",
+  ".kdbx",
+  ".ovpn",
+  ".asc",
+]);
+
+const REVIEWABLE_EXTENSIONS = new Set([
+  ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
+  ".py", ".rb", ".php", ".java", ".kt", ".kts", ".scala",
+  ".go", ".rs", ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".hh",
+  ".cs", ".swift", ".m", ".mm",
+  ".sh", ".bash", ".zsh", ".fish", ".ps1",
+  ".html", ".htm", ".css", ".scss", ".sass", ".less",
+  ".vue", ".svelte",
+  ".json", ".jsonc", ".yaml", ".yml", ".toml", ".ini", ".conf", ".properties",
+  ".md", ".mdx", ".txt",
+  ".sql", ".graphql", ".gql",
+]);
+
+const REVIEWABLE_BASENAMES = new Set([
+  "Dockerfile",
+  "Makefile",
+  "Procfile",
+  "Gemfile",
+  "Rakefile",
+  "CMakeLists.txt",
+  ".gitignore",
+]);
+
 const MAX_FILES = 50;
 const MAX_FILE_SIZE = 100_000; // 100 KB
+
+function getBasename(filePath: string): string {
+  return filePath.split("/").pop() || "";
+}
+
+function isSensitivePath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  const basename = segments[segments.length - 1] || "";
+  const lowerBase = basename.toLowerCase();
+
+  if (SENSITIVE_NAMES.has(basename) || SENSITIVE_NAMES.has(lowerBase)) return true;
+  if (lowerBase === ".env" || lowerBase.startsWith(".env.")) return true;
+  if (SENSITIVE_EXTENSIONS.has(extname(lowerBase))) return true;
+
+  return segments.some((segment) => {
+    const lower = segment.toLowerCase();
+    return SENSITIVE_DIRS.has(segment) ||
+      SENSITIVE_DIRS.has(lower) ||
+      lower === "secrets" ||
+      lower === "credentials";
+  });
+}
+
+function isReviewablePath(filePath: string): boolean {
+  const basename = getBasename(filePath);
+  if (REVIEWABLE_BASENAMES.has(basename)) return true;
+  return REVIEWABLE_EXTENSIONS.has(extname(basename).toLowerCase());
+}
 
 /**
  * Read a single file for review.
@@ -44,8 +133,9 @@ export function readFileForReview(filePath: string): ReviewFile | null {
     const stat = statSync(filePath);
     if (!stat.isFile()) return null;
     if (stat.size > MAX_FILE_SIZE) return null;
+    if (isSensitivePath(filePath)) return null;
     if (SKIP_EXTENSIONS.has(extname(filePath).toLowerCase())) return null;
-    if (SKIP_FILES.has(filePath.split("/").pop() || "")) return null;
+    if (SKIP_FILES.has(getBasename(filePath))) return null;
 
     const content = readFileSync(filePath, "utf-8");
 
@@ -75,14 +165,25 @@ function loadGitignore(dir: string): (path: string) => boolean {
     return (filePath: string) => {
       const rel = relative(dir, filePath);
       return lines.some((pattern) => {
+        if (pattern.startsWith("!")) return false;
+
+        const normalizedPattern = pattern.replace(/\/+$/, "");
+        const relPosix = rel.replace(/\\/g, "/");
+        const relBase = getBasename(relPosix);
+
         // Simple glob matching: exact match, prefix match, or extension match
         if (pattern.endsWith("/")) {
-          return rel.startsWith(pattern) || rel.includes("/" + pattern);
+          return relPosix === normalizedPattern || relPosix.startsWith(normalizedPattern + "/") || relPosix.includes("/" + normalizedPattern + "/");
         }
-        if (pattern.startsWith("*.")) {
-          return rel.endsWith(pattern.slice(1));
+        if (normalizedPattern.startsWith("*.")) {
+          return relBase.endsWith(normalizedPattern.slice(1));
         }
-        return rel === pattern || rel.startsWith(pattern + "/") || rel.includes("/" + pattern);
+        if (normalizedPattern.includes("*")) return false;
+        return relPosix === normalizedPattern ||
+          relBase === normalizedPattern ||
+          relPosix.startsWith(normalizedPattern + "/") ||
+          relPosix.includes("/" + normalizedPattern + "/") ||
+          relPosix.endsWith("/" + normalizedPattern);
       });
     };
   } catch {
@@ -125,11 +226,14 @@ export function collectFiles(dirPath: string): ReviewFile[] {
 
       if (entry.isDirectory()) {
         if (SKIP_DIRS.has(entry.name)) continue;
+        if (SENSITIVE_DIRS.has(entry.name) || SENSITIVE_DIRS.has(entry.name.toLowerCase())) continue;
         if (isIgnored(fullPath)) continue;
         walk(fullPath);
       } else if (entry.isFile()) {
         if (SKIP_FILES.has(entry.name)) continue;
+        if (isSensitivePath(fullPath)) continue;
         if (SKIP_EXTENSIONS.has(extname(entry.name).toLowerCase())) continue;
+        if (!isReviewablePath(entry.name)) continue;
         if (isIgnored(fullPath)) continue;
 
         const file = readFileForReview(fullPath);

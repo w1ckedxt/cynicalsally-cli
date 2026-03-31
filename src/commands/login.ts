@@ -1,30 +1,22 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { saveEmail, getEmail, getDeviceId } from "../utils/config.js";
-import { requestMagicLink, checkEntitlements } from "../utils/api.js";
+import { saveEmail, getEmail } from "../utils/config.js";
+import { requestMagicLink } from "../utils/api.js";
 
 export const loginCommand = new Command("login")
   .description("Log in with your email (magic link)")
   .argument("[email]", "Your email address")
   .action(async (email?: string) => {
     const existing = getEmail();
-    if (existing) {
-      console.log(
-        chalk.yellow("\nI already know you as ") +
-          chalk.cyan(existing) +
-          chalk.yellow(".") +
-          "\nWant a fresh start? " +
-          chalk.cyan("sally logout") +
-          " first.\n"
-      );
-      return;
-    }
 
     if (!email) {
       console.log(
         chalk.magenta("\nWho are you?") +
           "\n\n" +
+          (existing
+            ? chalk.gray(`  Stored locally: ${existing}\n`)
+            : "") +
           chalk.gray("  sally login your@email.com") +
           "\n\n" +
           chalk.gray("Full Suite members get unlimited roasts. The rest of you get a taste.\n")
@@ -49,9 +41,9 @@ export const loginCommand = new Command("login")
             chalk.cyan(email) +
             chalk.green(".") +
             "\n\n" +
-            chalk.gray("Click the link. I'll be here, judging your code.\n")
+            chalk.gray("Click the link. I'll update when the backend recognizes this device.\n")
         );
-        // Save email locally — the magic link verify maps deviceId server-side
+        // Keep a local email hint for status screens. The backend remains the source of truth.
         saveEmail(email);
       } else {
         console.log(chalk.red(`\n${result.error || "Couldn't send that. Even magic has its limits."}\n`));

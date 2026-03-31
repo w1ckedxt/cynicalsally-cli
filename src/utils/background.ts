@@ -9,7 +9,7 @@ const RESULTS_DIR = join(homedir(), ".sally", "results");
 /** Ensure results directory exists */
 function ensureResultsDir(): void {
   if (!existsSync(RESULTS_DIR)) {
-    mkdirSync(RESULTS_DIR, { recursive: true });
+    mkdirSync(RESULTS_DIR, { recursive: true, mode: 0o700 });
   }
 }
 
@@ -19,7 +19,7 @@ export function saveResult(result: object, source: string): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `review-${timestamp}.json`;
   const filepath = join(RESULTS_DIR, filename);
-  writeFileSync(filepath, JSON.stringify({ ...result, _source: source, _savedAt: new Date().toISOString() }, null, 2));
+  writeFileSync(filepath, JSON.stringify({ ...result, _source: source, _savedAt: new Date().toISOString() }, null, 2), { mode: 0o600 });
   return filepath;
 }
 
@@ -44,7 +44,7 @@ export function spawnBackgroundWorker(args: string[], cwd: string): void {
   ensureResultsDir();
   const sallyBin = process.argv[1];
   const logFile = join(homedir(), ".sally", "bg.log");
-  const out = openSync(logFile, "a");
+  const out = openSync(logFile, "a", 0o600);
 
   const child = spawn(process.execPath, [sallyBin, "roast", ...args, "--bg-worker"], {
     detached: true,

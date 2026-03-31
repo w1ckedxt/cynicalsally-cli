@@ -26,7 +26,7 @@ export const usageCommand = new Command("usage")
       console.log();
 
       if (email) {
-        console.log(`  ${chalk.gray("Email:")}    ${chalk.white(email)}`);
+        console.log(`  ${chalk.gray("Email (local):")}  ${chalk.white(email)}`);
       }
       console.log(`  ${chalk.gray("Device:")}   ${chalk.gray(deviceId.slice(0, 8) + "...")}`);
       console.log();
@@ -88,7 +88,7 @@ export const usageCommand = new Command("usage")
       if (!email) {
         console.log();
         console.log(
-          chalk.gray("  I don't even know who you are. ") +
+          chalk.gray("  No email linked locally. ") +
             chalk.cyan("sally login your@email.com")
         );
       }
