@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { saveEmail, getEmail } from "../utils/config.js";
+import { getEmail } from "../utils/config.js";
 import { requestMagicLink } from "../utils/api.js";
 
 export const loginCommand = new Command("login")
@@ -41,10 +41,10 @@ export const loginCommand = new Command("login")
             chalk.cyan(email) +
             chalk.green(".") +
             "\n\n" +
-            chalk.gray("Click the link. I'll update when the backend recognizes this device.\n")
+            chalk.gray("Click the link, then run ") +
+            chalk.cyan("sally usage") +
+            chalk.gray(" once the backend recognizes this device.\n")
         );
-        // Keep a local email hint for status screens. The backend remains the source of truth.
-        saveEmail(email);
       } else {
         console.log(chalk.red(`\n${result.error || "Couldn't send that. Even magic has its limits."}\n`));
       }

@@ -94,6 +94,12 @@ export interface EntitlementsResponse {
   flavor?: Flavor;
 }
 
+interface BasicApiResponse {
+  ok?: boolean;
+  message?: string;
+  error?: string;
+}
+
 // ---------------------------------------------------------------------------
 // API Client
 // ---------------------------------------------------------------------------
@@ -210,6 +216,22 @@ export async function requestMagicLink(email: string): Promise<{ sent: boolean; 
     body: JSON.stringify({ email, deviceId }),
   });
   return await res.json();
+}
+
+/** Unlink the current device from any server-side account/session mapping */
+export async function unlinkDeviceSession(): Promise<BasicApiResponse> {
+  const deviceId = getDeviceId();
+  const res = await fetch(`${API_BASE}/api/v1/auth/session?deviceId=${encodeURIComponent(deviceId)}`, {
+    method: "DELETE",
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  const body = await res.json().catch(() => ({ error: res.statusText })) as BasicApiResponse;
+  if (!res.ok) {
+    throw new ApiError(res.status, body.error || body.message || `HTTP ${res.status}`);
+  }
+
+  return body;
 }
 
 /** Check entitlements (quota, SuperClub status) + cache flavor */

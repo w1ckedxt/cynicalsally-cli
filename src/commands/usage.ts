@@ -26,7 +26,7 @@ export const usageCommand = new Command("usage")
       console.log();
 
       if (email) {
-        console.log(`  ${chalk.gray("Email (local):")}  ${chalk.white(email)}`);
+        console.log(`  ${chalk.gray("Linked email:")}  ${chalk.white(email)}`);
       }
       console.log(`  ${chalk.gray("Device:")}   ${chalk.gray(deviceId.slice(0, 8) + "...")}`);
       console.log();
@@ -39,7 +39,11 @@ export const usageCommand = new Command("usage")
         console.log(`  ${chalk.gray("Quick Reviews:")}  ${chalk.green("unlimited")}`);
         console.log(`  ${chalk.gray("Full Truth:")}     ${chalk.green("unlimited")}`);
         console.log();
-        console.log(chalk.gray("  You actually paid. Respect. Now let me tear your code apart."));
+        if (email) {
+          console.log(chalk.gray("  This device is linked to your account. Now let me tear your code apart."));
+        } else {
+          console.log(chalk.gray("  Full Suite is active on this device, but no account is linked locally."));
+        }
       } else {
         console.log(`  ${chalk.gray("Tier:")}     ${chalk.white(tierLabel)}`);
 
@@ -88,7 +92,7 @@ export const usageCommand = new Command("usage")
       if (!email) {
         console.log();
         console.log(
-          chalk.gray("  No email linked locally. ") +
+          chalk.gray("  No account linked on this device. ") +
             chalk.cyan("sally login your@email.com")
         );
       }

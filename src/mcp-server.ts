@@ -300,7 +300,7 @@ server.tool(
       const parts: string[] = [];
       parts.push("## Sally Account Status\n");
 
-      if (email) parts.push(`**Email (local):** ${email}`);
+      if (email) parts.push(`**Linked email:** ${email}`);
       parts.push(`**Device:** ${deviceId.slice(0, 8)}...`);
 
       const tier = entitlements.cliTier || (entitlements.isSuperClub ? "sc" : "lite");
@@ -310,6 +310,9 @@ server.tool(
         parts.push(`**Quick Reviews:** unlimited`);
         parts.push(`**Full Truth:** unlimited`);
         parts.push(`**Premium Tools:** unlimited`);
+        parts.push(email
+          ? `**Status:** linked on this device`
+          : `**Status:** active on this device, no local account link`);
       } else {
         parts.push(`**Tier:** Sally CLI Free`);
         if (entitlements.cliQuota) {
@@ -324,6 +327,9 @@ server.tool(
           }
         }
         parts.push(`\n*Run \`sally upgrade\` in your terminal for unlimited access.*`);
+        if (!email) {
+          parts.push(`*No account linked on this device. Run \`sally login your@email.com\` to relink it.*`);
+        }
       }
 
       return {
