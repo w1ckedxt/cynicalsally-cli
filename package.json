@@ -1,6 +1,6 @@
 {
   "name": "@cynicalsally/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Brutally honest code reviews. Because 'You're absolutely right' is probably absolutely wrong.",
   "author": "Thomas Geelens",
   "license": "MIT",
