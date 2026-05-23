@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Cynical Sally CLI" width="700" />
+  <img src="assets/banner.png" alt="Cynical Sally CLI / MCP" width="700" />
 </p>
 
 <h1 align="center">@cynicalsally/cli</h1>
