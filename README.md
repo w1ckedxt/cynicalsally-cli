@@ -1,12 +1,15 @@
+<!-- mcp-name: io.github.w1ckedxt/cynicalsally -->
+
 <p align="center">
-  <img src="assets/banner.png" alt="Cynical Sally CLI / MCP" width="700" />
+  <img src="assets/banner.png" alt="Cynical Sally" width="700" />
 </p>
 
-<h1 align="center">@cynicalsally/cli</h1>
+<h1 align="center">Cynical Sally</h1>
 
 <p align="center">
-  <strong>Brutally honest code reviews. Terminal + IDE.</strong><br/>
-  <em>Because "You're absolutely right" is probably absolutely wrong.</em>
+  <strong>Brutally honest code reviews. In your terminal and your AI editor.</strong><br/>
+  <em>Because "You're absolutely right" is probably absolutely wrong.</em><br/>
+  <code>npm i -g @cynicalsally/cli</code> · MCP server for Claude Code, Cursor &amp; Windsurf
 </p>
 
 <p align="center">
@@ -14,6 +17,7 @@
   <a href="https://cynicalsally.com"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fcynicalsally.com%2Fapi%2Fv1%2Fbadge%2Frepo%2Fw1ckedxt%2Fcynicalsally-cli%2Fshields" alt="Sally Score" /></a>
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/v/@cynicalsally/cli.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/dm/@cynicalsally/cli.svg" alt="npm downloads" /></a>
+  <a href="https://registry.modelcontextprotocol.io/?search=cynicalsally"><img src="https://img.shields.io/badge/MCP-Registry-8a2be2.svg" alt="MCP Registry" /></a>
   <a href="https://github.com/w1ckedxt/cynicalsally-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/w1ckedxt/cynicalsally-cli.svg" alt="license" /></a>
 </p>
 

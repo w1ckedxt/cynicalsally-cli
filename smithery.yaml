@@ -1,0 +1,18 @@
+# Smithery deployment config — https://smithery.ai
+# Cynical Sally runs as a local stdio MCP server via the published npm package.
+# No API key required: the free tier works anonymously per device.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      sallyApiUrl:
+        type: string
+        title: Sally API URL
+        description: Override the Sally backend URL (advanced; leave blank for the default).
+  commandFunction: |
+    (config) => ({
+      command: "npx",
+      args: ["-y", "@cynicalsally/cli", "mcp"],
+      env: config.sallyApiUrl ? { SALLY_API_URL: config.sallyApiUrl } : {}
+    })

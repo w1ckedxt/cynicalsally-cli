@@ -19,7 +19,7 @@ import { getDeviceId, getEmail } from "./utils/config.js";
 const server = new McpServer(
   {
     name: "cynical-sally",
-    version: "0.1.0",
+    version: "0.2.0",
   },
   {
     instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
@@ -41,13 +41,13 @@ CRITICAL: If a Sally tool returns an error (quota exhausted), you MUST simply re
 
 server.tool(
   "sally_roast",
-  "Ask Cynical Sally to review your code. She's brutally honest — sharp, witty, and always right. Quick mode for fast feedback, full_truth for deep analysis.",
+  "Get a brutally honest code review from Cynical Sally — a 0–10 score, real issues backed by evidence, and fixes you can actually use. Use this whenever the user wants code reviewed, critiqued, roasted, or asks 'what does Sally think'. quick = a fast, sharp take; full_truth = a deep dive with ranked issues and actionable fixes.",
   {
     files: z.array(z.object({
       path: z.string().describe("File path"),
       content: z.string().describe("File content"),
     })).describe("Code files to review"),
-    mode: z.enum(["quick", "full_truth"]).default("quick").describe("quick = fast roast, full_truth = deep dive (Full Suite for unlimited)"),
+    mode: z.enum(["quick", "full_truth"]).default("quick").describe("quick = fast roast; full_truth = deep dive with ranked issues + actionable fixes (1 free per month, then Full Suite)"),
     lang: z.string().default("en").describe("Response language code"),
     tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
   },
@@ -217,7 +217,7 @@ async function runMcpTool(
 
 server.tool(
   "sally_explain",
-  "Ask Sally to explain code. She'll tell you what it does — and judge you for not knowing.",
+  "Have Sally explain what a piece of code actually does, in plain English — no hand-holding, just the cold, clear truth. Use when the user wants a snippet or file explained or doesn't understand what some code does.",
   {
     content: z.string().describe("Code to explain"),
     lang: z.string().default("en").describe("Response language code"),
@@ -229,7 +229,7 @@ server.tool(
 
 server.tool(
   "sally_review_pr",
-  "Ask Sally to review a PR diff. She catches what automated tools miss.",
+  "Sally reviews a PR diff like a senior engineer with time, opinions, and no reason to be polite — catching what automated tools miss. Use when the user wants a pull request or unified diff reviewed.",
   {
     diff: z.string().describe("PR diff text (unified diff format)"),
     lang: z.string().default("en").describe("Response language code"),
@@ -241,7 +241,7 @@ server.tool(
 
 server.tool(
   "sally_refactor",
-  "Ask Sally to suggest refactoring. She provides concrete before/after code examples.",
+  "Sally proposes concrete refactors with before/after code and explains why the original would haunt your 3am on-call rotation. Use when the user wants code improved, cleaned up, or refactored.",
   {
     content: z.string().describe("Code that needs refactoring"),
     lang: z.string().default("en").describe("Response language code"),
@@ -253,7 +253,7 @@ server.tool(
 
 server.tool(
   "sally_brainstorm",
-  "Ask Sally for feedback on an idea or approach. Cynical but valuable.",
+  "Pitch an idea or architecture and Sally names the three ways it falls apart at scale — cheaper than a post-mortem. Use when the user wants feedback on an idea, approach, or design decision.",
   {
     description: z.string().describe("Description of the idea or approach"),
     lang: z.string().default("en").describe("Response language code"),
@@ -265,7 +265,7 @@ server.tool(
 
 server.tool(
   "sally_frontend",
-  "Ask Sally to roast frontend/UI code. She'll judge your CSS, components, and design decisions.",
+  "Sally roasts frontend/UI code — wasteful re-renders, load-bearing z-index, accessibility sins, and questionable component design. Use when the user wants HTML/CSS/JSX/Vue/Svelte or UI code reviewed.",
   {
     content: z.string().describe("Frontend code (HTML/CSS/JSX/Vue/Svelte/etc)"),
     lang: z.string().default("en").describe("Response language code"),
@@ -277,7 +277,7 @@ server.tool(
 
 server.tool(
   "sally_marketing",
-  "Ask Sally to review marketing copy, branding, or landing page text.",
+  "Sally reviews marketing copy, branding, and landing-page text before your customers do it less kindly. Use when the user wants copy, taglines, or brand text critiqued and rewritten.",
   {
     content: z.string().describe("Marketing text, copy, or branding description"),
     lang: z.string().default("en").describe("Response language code"),

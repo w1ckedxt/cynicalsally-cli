@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.w1ckedxt/cynicalsally",
+  "description": "Cynical Sally — a brutally honest senior-engineer code reviewer. Scores, evidence-backed issues, and usable fixes, right inside your AI editor.",
+  "repository": {
+    "url": "https://github.com/w1ckedxt/cynicalsally-cli",
+    "source": "github"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@cynicalsally/cli",
+      "version": "0.2.0",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [
+        { "type": "positional", "value": "mcp" }
+      ]
+    }
+  ]
+}
