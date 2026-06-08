@@ -20,15 +20,5 @@
       "args": ["-y", "@cynicalsally/cli", "mcp"],
       "env": {}
     }
-  },
-  "tools": [
-    { "name": "sally_roast", "description": "Brutally honest code review with a 0-10 score, evidence-backed issues, and fixes" },
-    { "name": "sally_explain", "description": "Explain what code actually does, in plain English" },
-    { "name": "sally_review_pr", "description": "Review a PR diff like a senior engineer" },
-    { "name": "sally_refactor", "description": "Concrete before/after refactoring suggestions" },
-    { "name": "sally_brainstorm", "description": "Honest feedback on an idea or architecture" },
-    { "name": "sally_frontend", "description": "Roast frontend/UI code" },
-    { "name": "sally_marketing", "description": "Review marketing copy and branding" },
-    { "name": "sally_usage", "description": "Check quota and account status" }
-  ]
+  }
 }
