@@ -1,0 +1,34 @@
+{
+  "manifest_version": "0.3",
+  "name": "cynical-sally",
+  "display_name": "Cynical Sally",
+  "version": "0.2.0",
+  "description": "Brutally honest code reviews: scores, real issues, and usable fixes. CLI + MCP server.",
+  "long_description": "Cynical Sally is a brutally honest senior-engineer code reviewer for Claude Code, Cursor & Windsurf. She gives a 0–10 score, evidence-backed issues, and fixes you can actually use. 8 tools: roast, explain, review-pr, refactor, brainstorm, frontend, marketing, and usage. Free tier, no account needed.",
+  "author": {
+    "name": "Thomas Geelens",
+    "url": "https://cynicalsally.com"
+  },
+  "homepage": "https://github.com/w1ckedxt/cynical-sally",
+  "documentation": "https://github.com/w1ckedxt/cynical-sally#readme",
+  "keywords": ["code-review", "mcp", "ai", "developer-tools", "cli", "claude", "cursor", "windsurf"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "npx",
+      "args": ["-y", "@cynicalsally/cli", "mcp"],
+      "env": {}
+    }
+  },
+  "tools": [
+    { "name": "sally_roast", "description": "Brutally honest code review with a 0-10 score, evidence-backed issues, and fixes" },
+    { "name": "sally_explain", "description": "Explain what code actually does, in plain English" },
+    { "name": "sally_review_pr", "description": "Review a PR diff like a senior engineer" },
+    { "name": "sally_refactor", "description": "Concrete before/after refactoring suggestions" },
+    { "name": "sally_brainstorm", "description": "Honest feedback on an idea or architecture" },
+    { "name": "sally_frontend", "description": "Roast frontend/UI code" },
+    { "name": "sally_marketing", "description": "Review marketing copy and branding" },
+    { "name": "sally_usage", "description": "Check quota and account status" }
+  ]
+}
