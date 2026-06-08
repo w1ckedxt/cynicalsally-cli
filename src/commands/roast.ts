@@ -9,7 +9,7 @@ import { displayRoast, printSally, handleApiError } from "../utils/output.js";
 import { saveReport } from "../utils/report.js";
 import { askBackground, spawnBackgroundWorker, saveResult, sendNotification } from "../utils/background.js";
 import { getFlavor } from "../utils/flavor.js";
-import { showToolsHint, getEmail } from "../utils/config.js";
+import { showToolsHint, showPrivacyNotice, getEmail } from "../utils/config.js";
 import { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles } from "../utils/git.js";
 import type { ReviewFile } from "../utils/files.js";
 
@@ -212,6 +212,13 @@ export const roastCommand = new Command("roast")
         console.log(JSON.stringify(response, null, 2));
       } else {
         displayRoast(response);
+
+        // First-run privacy reassurance (once per install)
+        if (showPrivacyNotice()) {
+          console.log();
+          console.log(chalk.gray("  I won't remember your code, your secrets, or your next billion-dollar exit —"));
+          console.log(chalk.gray("  your files are reviewed and discarded. We get that this matters: ") + chalk.cyan("cynicalsally.com/privacy"));
+        }
 
         // Show premium tools hint (once per install, not for Full Suite users)
         if (mode === "quick" && !getEmail() && showToolsHint()) {

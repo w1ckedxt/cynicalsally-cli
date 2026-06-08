@@ -332,11 +332,13 @@ sally upgrade   # Unlock the Full Suite
 
 ## Privacy & Security
 
-- Code is transmitted over HTTPS and processed in real-time
-- **No source code is stored** on our servers. Ever.
-- Analysis results are tied to an anonymous device ID
-- Full Suite members can optionally link an email for account features
-- Config stored locally at `~/.sally/config.json`
+Your code is yours. Here's exactly what happens to it:
+
+- **Sent only to be reviewed.** The files you choose are transmitted over HTTPS and processed in real-time to generate the review — that's the only reason they leave your machine.
+- **Not stored.** Your source files are processed in memory and discarded after analysis. We keep the review (score, issues), not your source code.
+- **Never trained on, sold, or shared.** Analysis runs through Anthropic's API, which doesn't train on submitted content.
+- **Only what you point at.** Sally doesn't browse your repo, read files you didn't give her, or scan your projects or plans. Secret files (`.env`, keys, certs) are skipped on your machine before anything is sent.
+- **Anonymous by default.** Reviews are tied to a random device ID, not your identity — until you link an email for Full Suite. Config stored locally at `~/.sally/config.json`.
 
 For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
 

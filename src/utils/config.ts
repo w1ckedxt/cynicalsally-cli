@@ -10,6 +10,7 @@ interface SallyConfig {
   device_id?: string;
   email?: string;
   tools_hint_shown?: boolean;
+  privacy_notice_shown?: boolean;
 }
 
 function ensureConfigDir(): void {
@@ -72,6 +73,15 @@ export function showToolsHint(): boolean {
   const config = readConfig();
   if (config.tools_hint_shown) return false;
   config.tools_hint_shown = true;
+  writeConfig(config);
+  return true;
+}
+
+/** Show the privacy reassurance once, then never again. Returns true the first time. */
+export function showPrivacyNotice(): boolean {
+  const config = readConfig();
+  if (config.privacy_notice_shown) return false;
+  config.privacy_notice_shown = true;
   writeConfig(config);
   return true;
 }
