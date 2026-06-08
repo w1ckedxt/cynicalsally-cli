@@ -17,7 +17,7 @@ npm install -g @cynicalsally/cli@latest
 Instead, use one of these private channels:
 
 1. **GitHub Security Advisories** — open a private report via the repository's
-   [Security tab → "Report a vulnerability"](https://github.com/w1ckedxt/cynicalsally-cli/security/advisories/new).
+   [Security tab → "Report a vulnerability"](https://github.com/w1ckedxt/cynical-sally/security/advisories/new).
 2. **Email** — reach the maintainer through [cynicalsally.com/contact](https://cynicalsally.com/contact).
 
 Please include:

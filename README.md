@@ -18,7 +18,7 @@
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/v/@cynicalsally/cli.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/dm/@cynicalsally/cli.svg" alt="npm downloads" /></a>
   <a href="https://registry.modelcontextprotocol.io/?search=cynicalsally"><img src="https://img.shields.io/badge/MCP-Registry-8a2be2.svg" alt="MCP Registry" /></a>
-  <a href="https://github.com/w1ckedxt/cynicalsally-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/w1ckedxt/cynicalsally-cli.svg" alt="license" /></a>
+  <a href="https://github.com/w1ckedxt/cynical-sally/blob/main/LICENSE"><img src="https://img.shields.io/github/license/w1ckedxt/cynical-sally.svg" alt="license" /></a>
 </p>
 
 ---
@@ -337,7 +337,7 @@ For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
 
 ## Contributing
 
-Found a bug or have a feature idea? [Open an issue](https://github.com/w1ckedxt/cynicalsally-cli/issues). Sally promises to only judge your issue title a little.
+Found a bug or have a feature idea? [Open an issue](https://github.com/w1ckedxt/cynical-sally/issues). Sally promises to only judge your issue title a little.
 
 ## License
 
@@ -346,5 +346,5 @@ Found a bug or have a feature idea? [Open an issue](https://github.com/w1ckedxt/
 ---
 
 <p align="center">
-  <a href="https://cynicalsally.com">cynicalsally.com</a> · <a href="https://www.npmjs.com/package/@cynicalsally/cli">npm</a> · <a href="https://github.com/w1ckedxt/cynicalsally-cli/issues">issues</a>
+  <a href="https://cynicalsally.com">cynicalsally.com</a> · <a href="https://www.npmjs.com/package/@cynicalsally/cli">npm</a> · <a href="https://github.com/w1ckedxt/cynical-sally/issues">issues</a>
 </p>

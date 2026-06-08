@@ -3,7 +3,7 @@
   "name": "io.github.w1ckedxt/cynicalsally",
   "description": "Cynical Sally — a brutally honest senior-engineer code reviewer. Scores, evidence-backed issues, and usable fixes, right inside your AI editor.",
   "repository": {
-    "url": "https://github.com/w1ckedxt/cynicalsally-cli",
+    "url": "https://github.com/w1ckedxt/cynical-sally",
     "source": "github"
   },
   "version": "0.2.0",
