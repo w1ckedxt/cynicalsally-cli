@@ -111,7 +111,7 @@ sally roast [paths...] [options]
 <h2 align="center">Sally's Full Suite</h2>
 
 <p align="center">
-  <em>6 CLI tools. Unlimited usage. The most honest code reviewer you'll ever work with, right in your terminal.</em>
+  <em>6 tools. Unlimited usage. The most honest code reviewer you'll ever work with — in your terminal and your AI editor.</em>
 </p>
 
 <p align="center">
