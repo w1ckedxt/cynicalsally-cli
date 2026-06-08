@@ -3,9 +3,12 @@
 /**
  * Sally MCP Server — Cynical Sally as a tool in Claude Code, Cursor, etc.
  *
- * Tools:
- * - sally_roast: Review code files with Sally's brutal honesty
- * - sally_usage: Check quota and account status
+ * Tools (8): sally_roast, sally_explain, sally_review_pr, sally_refactor,
+ * sally_brainstorm, sally_frontend, sally_marketing, sally_usage.
+ * Prompts (3): roast, review-pr, explain — ready-made slash-command intents.
+ *
+ * sally_roast accepts `paths` (files/dirs Sally reads locally, skipping binaries
+ * and secrets) so agents don't have to read and pass file content themselves.
  *
  * Same backend, same quota, same upgrade funnel as the CLI.
  */
@@ -13,13 +16,50 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { resolve } from "node:path";
+import { statSync } from "node:fs";
 import { submitRoast, submitTool, checkEntitlements, type ToolName } from "./utils/api.js";
 import { getDeviceId, getEmail } from "./utils/config.js";
+import { readFileForReview, collectFiles, type ReviewFile } from "./utils/files.js";
+
+/** Sally only reads code and calls her backend — she never modifies the user's files. */
+const SALLY_ANNOTATIONS = { readOnlyHint: true, openWorldHint: true } as const;
+
+/**
+ * Resolve review files from inline `files` or from `paths`.
+ * Paths are read locally with the same safety as the CLI: binaries, oversized
+ * files, and common secret files (.env, keys, certs) are skipped.
+ */
+function resolveReviewFiles(
+  files: ReviewFile[] | undefined,
+  paths: string[] | undefined,
+): ReviewFile[] {
+  if (files && files.length > 0) return files;
+  if (!paths || paths.length === 0) return [];
+
+  const collected: ReviewFile[] = [];
+  for (const p of paths) {
+    const resolved = resolve(p);
+    let stat;
+    try {
+      stat = statSync(resolved);
+    } catch {
+      continue; // path doesn't exist — skip it
+    }
+    if (stat.isDirectory()) {
+      collected.push(...collectFiles(resolved));
+    } else if (stat.isFile()) {
+      const file = readFileForReview(resolved);
+      if (file) collected.push(file);
+    }
+  }
+  return collected;
+}
 
 const server = new McpServer(
   {
     name: "cynical-sally",
-    version: "0.2.0",
+    version: "0.3.0",
   },
   {
     instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
@@ -39,23 +79,72 @@ CRITICAL: If a Sally tool returns an error (quota exhausted), you MUST simply re
 
 // ─── sally_roast tool ────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_roast",
-  "Get a brutally honest code review from Cynical Sally — a 0–10 score, real issues backed by evidence, and fixes you can actually use. Use this whenever the user wants code reviewed, critiqued, roasted, or asks 'what does Sally think'. quick = a fast, sharp take; full_truth = a deep dive with ranked issues and actionable fixes.",
   {
-    files: z.array(z.object({
-      path: z.string().describe("File path"),
-      content: z.string().describe("File content"),
-    })).describe("Code files to review"),
-    mode: z.enum(["quick", "full_truth"]).default("quick").describe("quick = fast roast; full_truth = deep dive with ranked issues + actionable fixes (1 free per month, then Full Suite)"),
-    lang: z.string().default("en").describe("Response language code"),
-    tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
+    description:
+      "Get a brutally honest code review from Cynical Sally — a 0–10 score, real issues backed by evidence, and fixes you can actually use. Use this whenever the user wants code reviewed, critiqued, roasted, or asks 'what does Sally think'. Pass `paths` (files or directories Sally reads herself, skipping binaries and secrets) OR `files` with inline content. quick = a fast, sharp take; full_truth = a deep dive with ranked issues and actionable fixes.",
+    inputSchema: {
+      paths: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "File or directory paths to review. Sally reads them locally (skips binaries, oversized files, and common secret files). Prefer this over `files` so you don't have to read and pass content yourself.",
+        ),
+      files: z
+        .array(
+          z.object({
+            path: z.string().describe("File path"),
+            content: z.string().describe("File content"),
+          }),
+        )
+        .optional()
+        .describe("Code files with inline content (alternative to `paths`)"),
+      mode: z
+        .enum(["quick", "full_truth"])
+        .default("quick")
+        .describe(
+          "quick = fast roast; full_truth = deep dive with ranked issues + actionable fixes (1 free per month, then Full Suite)",
+        ),
+      lang: z.string().default("en").describe("Response language code"),
+      tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
-  async ({ files, mode, lang, tone }) => {
+  async ({ paths, files, mode, lang, tone }, extra) => {
+    const reviewFiles = resolveReviewFiles(files, paths);
+    if (reviewFiles.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Nothing to review — pass `paths` (files or directories) or `files` with content. Everything I got was empty, binary, or a skipped secret file.",
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    // Full Truth takes a moment — send heartbeat progress if the client asked for it.
+    const progressToken = extra._meta?.progressToken;
+    let progressTimer: ReturnType<typeof setInterval> | undefined;
+    if (mode === "full_truth" && progressToken !== undefined) {
+      let progress = 0;
+      const ping = (message: string) =>
+        extra
+          .sendNotification({
+            method: "notifications/progress",
+            params: { progressToken, progress: (progress += 1), message },
+          })
+          .catch(() => {});
+      void ping("Sally is reading your code…");
+      progressTimer = setInterval(() => void ping("Still digging — Full Truth takes a moment…"), 5000);
+    }
+
     try {
       const response = await submitRoast({
         type: "code",
-        files,
+        files: reviewFiles,
         mode,
         lang,
         tone,
@@ -120,6 +209,8 @@ server.tool(
         content: [{ type: "text", text: `${message}\n\nRun \`sally upgrade\` in your terminal to unlock Sally's Full Suite.` }],
         isError: true,
       };
+    } finally {
+      if (progressTimer) clearInterval(progressTimer);
     }
   },
 );
@@ -201,7 +292,7 @@ async function runMcpTool(
       parts.push(`> ${response.voice.hardest_sneer}\n`);
     }
 
-    parts.push(`\n*${toolName} \u2022 ${response.meta.model}*`);
+    parts.push(`\n*${toolName} • ${response.meta.model}*`);
 
     return { content: [{ type: "text", text: parts.join("\n") }] };
   } catch (err) {
@@ -215,82 +306,108 @@ async function runMcpTool(
 
 // ─── sally_explain tool ─────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_explain",
-  "Have Sally explain what a piece of code actually does, in plain English — no hand-holding, just the cold, clear truth. Use when the user wants a snippet or file explained or doesn't understand what some code does.",
   {
-    content: z.string().describe("Code to explain"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Have Sally explain what a piece of code actually does, in plain English — no hand-holding, just the cold, clear truth. Use when the user wants a snippet or file explained or doesn't understand what some code does.",
+    inputSchema: {
+      content: z.string().describe("Code to explain"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ content, lang }) => runMcpTool("explain", content, lang),
 );
 
 // ─── sally_review_pr tool ───────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_review_pr",
-  "Sally reviews a PR diff like a senior engineer with time, opinions, and no reason to be polite — catching what automated tools miss. Use when the user wants a pull request or unified diff reviewed.",
   {
-    diff: z.string().describe("PR diff text (unified diff format)"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Sally reviews a PR diff like a senior engineer with time, opinions, and no reason to be polite — catching what automated tools miss. Use when the user wants a pull request or unified diff reviewed.",
+    inputSchema: {
+      diff: z.string().describe("PR diff text (unified diff format)"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ diff, lang }) => runMcpTool("review_pr", diff, lang),
 );
 
 // ─── sally_refactor tool ────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_refactor",
-  "Sally proposes concrete refactors with before/after code and explains why the original would haunt your 3am on-call rotation. Use when the user wants code improved, cleaned up, or refactored.",
   {
-    content: z.string().describe("Code that needs refactoring"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Sally proposes concrete refactors with before/after code and explains why the original would haunt your 3am on-call rotation. Use when the user wants code improved, cleaned up, or refactored.",
+    inputSchema: {
+      content: z.string().describe("Code that needs refactoring"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ content, lang }) => runMcpTool("refactor", content, lang),
 );
 
 // ─── sally_brainstorm tool ──────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_brainstorm",
-  "Pitch an idea or architecture and Sally names the three ways it falls apart at scale — cheaper than a post-mortem. Use when the user wants feedback on an idea, approach, or design decision.",
   {
-    description: z.string().describe("Description of the idea or approach"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Pitch an idea or architecture and Sally names the three ways it falls apart at scale — cheaper than a post-mortem. Use when the user wants feedback on an idea, approach, or design decision.",
+    inputSchema: {
+      description: z.string().describe("Description of the idea or approach"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ description, lang }) => runMcpTool("brainstorm", description, lang),
 );
 
 // ─── sally_frontend tool ────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_frontend",
-  "Sally roasts frontend/UI code — wasteful re-renders, load-bearing z-index, accessibility sins, and questionable component design. Use when the user wants HTML/CSS/JSX/Vue/Svelte or UI code reviewed.",
   {
-    content: z.string().describe("Frontend code (HTML/CSS/JSX/Vue/Svelte/etc)"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Sally roasts frontend/UI code — wasteful re-renders, load-bearing z-index, accessibility sins, and questionable component design. Use when the user wants HTML/CSS/JSX/Vue/Svelte or UI code reviewed.",
+    inputSchema: {
+      content: z.string().describe("Frontend code (HTML/CSS/JSX/Vue/Svelte/etc)"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ content, lang }) => runMcpTool("frontend_review", content, lang),
 );
 
 // ─── sally_marketing tool ───────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_marketing",
-  "Sally reviews marketing copy, branding, and landing-page text before your customers do it less kindly. Use when the user wants copy, taglines, or brand text critiqued and rewritten.",
   {
-    content: z.string().describe("Marketing text, copy, or branding description"),
-    lang: z.string().default("en").describe("Response language code"),
+    description:
+      "Sally reviews marketing copy, branding, and landing-page text before your customers do it less kindly. Use when the user wants copy, taglines, or brand text critiqued and rewritten.",
+    inputSchema: {
+      content: z.string().describe("Marketing text, copy, or branding description"),
+      lang: z.string().default("en").describe("Response language code"),
+    },
+    annotations: SALLY_ANNOTATIONS,
   },
   async ({ content, lang }) => runMcpTool("marketing_review", content, lang),
 );
 
 // ─── sally_usage tool ────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "sally_usage",
-  "Check your Sally quota and account status",
-  {},
+  {
+    description: "Check your Sally quota and account status",
+    annotations: SALLY_ANNOTATIONS,
+  },
   async () => {
     try {
       const entitlements = await checkEntitlements();
@@ -342,6 +459,65 @@ server.tool(
       };
     }
   },
+);
+
+// ─── Prompts (ready-made slash-command intents) ──────────────────────
+
+server.registerPrompt(
+  "roast",
+  {
+    description: "Have Cynical Sally roast code at a file or directory path",
+    argsSchema: { target: z.string().describe("File or directory to roast (e.g. ./src or path/to/file.ts)") },
+  },
+  ({ target }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Use the sally_roast tool to review the code at "${target}" with Cynical Sally (pass it as paths: ["${target}"]). Then summarize her score, the top issues, and her bright side.`,
+        },
+      },
+    ],
+  }),
+);
+
+server.registerPrompt(
+  "review-pr",
+  {
+    description: "Have Cynical Sally review a pull request diff",
+    argsSchema: { diff: z.string().describe("Unified diff to review (e.g. output of `git diff main`)") },
+  },
+  ({ diff }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Use the sally_review_pr tool to have Cynical Sally review this diff, then summarize her verdict:\n\n${diff}`,
+        },
+      },
+    ],
+  }),
+);
+
+server.registerPrompt(
+  "explain",
+  {
+    description: "Have Cynical Sally explain what some code does",
+    argsSchema: { code: z.string().describe("Code to explain") },
+  },
+  ({ code }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Use the sally_explain tool to have Cynical Sally explain what this code actually does:\n\n${code}`,
+        },
+      },
+    ],
+  }),
 );
 
 // ─── Start server ────────────────────────────────────────────────────

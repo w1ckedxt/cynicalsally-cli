@@ -297,6 +297,10 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 | `sally_marketing` | Marketing copy review |
 | `sally_usage` | Check quota and account status |
 
+**Roast by path** — the agent can call `sally_roast` with just `paths` (files or directories); Sally reads them locally and skips binaries and secret files, so the agent doesn't have to read and pass content itself.
+
+**Prompts** — Sally also exposes ready-made slash-command intents (`roast`, `review-pr`, `explain`) in clients that surface MCP prompts.
+
 Run `sally mcp` in your terminal to see setup instructions.
 
 ## All Commands
