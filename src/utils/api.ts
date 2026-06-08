@@ -2,7 +2,7 @@ import type { ReviewFile } from "./files.js";
 import { getDeviceId, saveEmail } from "./config.js";
 import { cacheFlavor, type Flavor } from "./flavor.js";
 
-const API_BASE = process.env.SALLY_API_URL || "https://cynicalsally-web.onrender.com";
+export const API_BASE = process.env.SALLY_API_URL || "https://cynicalsally-web.onrender.com";
 const FETCH_TIMEOUT_MS = 120_000; // 2 minutes (Sonnet FT can take a while)
 
 // ---------------------------------------------------------------------------

@@ -3,15 +3,17 @@ import chalk from "chalk";
 import ora from "ora";
 import { resolve } from "node:path";
 import { statSync } from "node:fs";
-import { readFileForReview, collectFiles } from "../utils/files.js";
+import { scanFileForReview, collectFilesDetailed } from "../utils/files.js";
 import { submitRoast } from "../utils/api.js";
 import { displayRoast, printSally, handleApiError } from "../utils/output.js";
 import { saveReport } from "../utils/report.js";
+import { printDryRun } from "../utils/dryrun.js";
+import { printRoastCard } from "../utils/card.js";
 import { askBackground, spawnBackgroundWorker, saveResult, sendNotification } from "../utils/background.js";
 import { getFlavor } from "../utils/flavor.js";
 import { showToolsHint, showPrivacyNotice, getEmail } from "../utils/config.js";
 import { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles } from "../utils/git.js";
-import type { ReviewFile } from "../utils/files.js";
+import type { ReviewFile, SkippedFile } from "../utils/files.js";
 
 export const roastCommand = new Command("roast")
   .description("Roast your code. Files, directories, staged changes, or branch diffs.")
@@ -25,10 +27,14 @@ export const roastCommand = new Command("roast")
   .option("--fail-under <score>", "Exit with code 1 if score is below threshold", parseFloat)
   .option("--ci", "CI mode: compact output + exit codes")
   .option("--bg", "Run Full Truth in the background — get notified when done")
+  .option("--dry-run", "Show exactly what would be sent (files, sizes, tokens, SHA-256) and send NOTHING")
+  .option("--card", "Print a shareable roast card after the review")
   .option("--bg-worker")
   .action(async (paths: string[], options) => {
     // ── Collect files ──────────────────────────────────────────────────
     let files: ReviewFile[] = [];
+    let skipped: SkippedFile[] = [];
+    let truncated = false;
     let source = "";
 
     try {
@@ -68,14 +74,19 @@ export const roastCommand = new Command("roast")
           }
 
           if (stat.isDirectory()) {
-            const collected = collectFiles(resolved);
-            files.push(...collected);
+            const collected = collectFilesDetailed(resolved);
+            files.push(...collected.files);
+            skipped.push(...collected.skipped);
+            if (collected.truncated) truncated = true;
           } else if (stat.isFile()) {
-            const file = readFileForReview(resolved);
-            if (file) {
-              files.push(file);
+            const scan = scanFileForReview(resolved, p);
+            if (scan.ok) {
+              files.push(scan.file);
             } else {
-              console.log(chalk.yellow(`Skipped: ${p}`) + chalk.gray(" — binary, too large, or something I refuse to read."));
+              skipped.push(scan.skip);
+              if (!options.dryRun) {
+                console.log(chalk.yellow(`Skipped: ${p}`) + chalk.gray(" — binary, too large, or something I refuse to read."));
+              }
             }
           }
         }
@@ -117,9 +128,11 @@ export const roastCommand = new Command("roast")
         // Fallback: just scan the current directory
         if (files.length === 0) {
           const cwd = resolve(".");
-          const collected = collectFiles(cwd);
-          if (collected.length > 0) {
-            files = collected;
+          const collected = collectFilesDetailed(cwd);
+          if (collected.files.length > 0) {
+            files = collected.files;
+            skipped = collected.skipped;
+            truncated = collected.truncated;
             source = ".";
             console.log(chalk.gray(`\n  Scanning this directory. Let's see what we're working with.\n`));
           }
@@ -137,6 +150,20 @@ export const roastCommand = new Command("roast")
       const msg = err instanceof Error ? err.message : String(err);
       console.log(chalk.red(`\nSomething broke: ${msg}`) + chalk.gray("\nNot my fault. Probably.\n"));
       process.exit(1);
+    }
+
+    // ── Dry run: show exactly what would be sent, then send NOTHING ──────
+    if (options.dryRun && (files.length > 0 || skipped.length > 0)) {
+      printSally();
+      console.log();
+      printDryRun({
+        files,
+        skipped,
+        truncated,
+        mode: options.mode === "quick" ? "quick" : "full_truth",
+        source: source || ".",
+      });
+      return;
     }
 
     if (files.length === 0) {
@@ -212,6 +239,11 @@ export const roastCommand = new Command("roast")
         console.log(JSON.stringify(response, null, 2));
       } else {
         displayRoast(response);
+
+        // Shareable roast card (--card)
+        if (options.card) {
+          printRoastCard(response);
+        }
 
         // First-run privacy reassurance (once per install)
         if (showPrivacyNotice()) {

@@ -6,6 +6,59 @@ export interface ReviewFile {
   content: string;
 }
 
+/** Why a file was held back and never sent to the backend. */
+export type SkipReason =
+  | "secret"
+  | "binary"
+  | "too-large"
+  | "non-reviewable"
+  | "gitignored"
+  | "skip-file"
+  | "skipped-dir"
+  | "unreadable";
+
+export interface SkippedFile {
+  path: string;
+  reason: SkipReason;
+  /** Optional human-readable extra (e.g. "142 KB", "null bytes"). */
+  detail?: string;
+}
+
+/** Result of a directory scan: what would be sent, what was held back. */
+export interface CollectResult {
+  files: ReviewFile[];
+  skipped: SkippedFile[];
+  /** True if the scan stopped at MAX_FILES and didn't see everything. */
+  truncated: boolean;
+}
+
+/** Discriminated result of scanning a single file. */
+export type FileScan =
+  | { ok: true; file: ReviewFile }
+  | { ok: false; skip: SkippedFile };
+
+const SKIP_REASON_LABELS: Record<SkipReason, string> = {
+  secret: "looks like a secret — never leaves your machine",
+  binary: "binary or non-text",
+  "too-large": "over the 100 KB per-file limit",
+  "non-reviewable": "not a reviewable code/text file",
+  gitignored: "matched a .gitignore rule",
+  "skip-file": "lockfile or system file",
+  "skipped-dir": "build/dependency/sensitive directory",
+  unreadable: "couldn't be read",
+};
+
+/** Human-readable reason for a skip, for dry-run reporting. */
+export function describeSkipReason(reason: SkipReason): string {
+  return SKIP_REASON_LABELS[reason];
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // Extensions we skip (binaries, images, media, lockfiles)
 const SKIP_EXTENSIONS = new Set([
   ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".webp", ".avif",
@@ -126,26 +179,42 @@ function isReviewablePath(filePath: string): boolean {
 }
 
 /**
- * Read a single file for review.
+ * Scan a single file, returning either the readable file or the reason it was
+ * held back. This is the single source of truth for the per-file secret/binary/
+ * size rules — `readFileForReview` and the directory walk both build on it, and
+ * the dry-run report surfaces the skip reasons to the user.
+ *
+ * @param displayPath Optional path to report (e.g. relative) instead of filePath.
  */
-export function readFileForReview(filePath: string): ReviewFile | null {
+export function scanFileForReview(filePath: string, displayPath?: string): FileScan {
+  const path = displayPath ?? filePath;
   try {
     const stat = statSync(filePath);
-    if (!stat.isFile()) return null;
-    if (stat.size > MAX_FILE_SIZE) return null;
-    if (isSensitivePath(filePath)) return null;
-    if (SKIP_EXTENSIONS.has(extname(filePath).toLowerCase())) return null;
-    if (SKIP_FILES.has(getBasename(filePath))) return null;
+    if (!stat.isFile()) return { ok: false, skip: { path, reason: "non-reviewable", detail: "not a file" } };
+    // Secrets first: a secret should be reported as a secret even if it's also huge.
+    if (isSensitivePath(filePath)) return { ok: false, skip: { path, reason: "secret" } };
+    if (SKIP_FILES.has(getBasename(filePath))) return { ok: false, skip: { path, reason: "skip-file" } };
+    if (SKIP_EXTENSIONS.has(extname(filePath).toLowerCase())) return { ok: false, skip: { path, reason: "binary" } };
+    if (stat.size > MAX_FILE_SIZE) return { ok: false, skip: { path, reason: "too-large", detail: formatBytes(stat.size) } };
 
     const content = readFileSync(filePath, "utf-8");
 
     // Skip likely binary files (null bytes in first 512 chars)
-    if (content.slice(0, 512).includes("\0")) return null;
+    if (content.slice(0, 512).includes("\0")) return { ok: false, skip: { path, reason: "binary", detail: "null bytes" } };
 
-    return { path: filePath, content };
+    return { ok: true, file: { path, content } };
   } catch {
-    return null;
+    return { ok: false, skip: { path, reason: "unreadable" } };
   }
+}
+
+/**
+ * Read a single file for review. Returns null if the file is skipped for any
+ * reason (binary, secret, too large, unreadable).
+ */
+export function readFileForReview(filePath: string): ReviewFile | null {
+  const result = scanFileForReview(filePath);
+  return result.ok ? result.file : null;
 }
 
 /**
@@ -192,16 +261,24 @@ function loadGitignore(dir: string): (path: string) => boolean {
 }
 
 /**
- * Walk a directory and collect files for review.
- * Respects .gitignore, skips binaries and known non-code dirs.
+ * Walk a directory and collect files for review, also recording every file and
+ * directory that was held back and why. Respects .gitignore, skips binaries,
+ * secrets, and known non-code dirs. This is what the `--dry-run` report reads.
  */
-export function collectFiles(dirPath: string): ReviewFile[] {
+export function collectFilesDetailed(dirPath: string): CollectResult {
   const files: ReviewFile[] = [];
+  const skipped: SkippedFile[] = [];
   const canonicalRoot = realpathSync(resolve(dirPath));
   const isIgnored = loadGitignore(dirPath);
+  let truncated = false;
+
+  const rel = (fullPath: string) => relative(dirPath, fullPath).replace(/\\/g, "/") || ".";
 
   function walk(dir: string): void {
-    if (files.length >= MAX_FILES) return;
+    if (files.length >= MAX_FILES) {
+      truncated = true;
+      return;
+    }
 
     let entries;
     try {
@@ -211,7 +288,10 @@ export function collectFiles(dirPath: string): ReviewFile[] {
     }
 
     for (const entry of entries) {
-      if (files.length >= MAX_FILES) return;
+      if (files.length >= MAX_FILES) {
+        truncated = true;
+        return;
+      }
 
       const fullPath = join(dir, entry.name);
 
@@ -225,26 +305,60 @@ export function collectFiles(dirPath: string): ReviewFile[] {
       if (!canonicalPath.startsWith(canonicalRoot)) continue;
 
       if (entry.isDirectory()) {
-        if (SKIP_DIRS.has(entry.name)) continue;
-        if (SENSITIVE_DIRS.has(entry.name) || SENSITIVE_DIRS.has(entry.name.toLowerCase())) continue;
-        if (isIgnored(fullPath)) continue;
+        if (SKIP_DIRS.has(entry.name)) {
+          skipped.push({ path: rel(fullPath) + "/", reason: "skipped-dir", detail: "build/dependency dir" });
+          continue;
+        }
+        if (SENSITIVE_DIRS.has(entry.name) || SENSITIVE_DIRS.has(entry.name.toLowerCase())) {
+          skipped.push({ path: rel(fullPath) + "/", reason: "secret", detail: "sensitive directory" });
+          continue;
+        }
+        if (isIgnored(fullPath)) {
+          skipped.push({ path: rel(fullPath) + "/", reason: "gitignored" });
+          continue;
+        }
         walk(fullPath);
       } else if (entry.isFile()) {
-        if (SKIP_FILES.has(entry.name)) continue;
-        if (isSensitivePath(fullPath)) continue;
-        if (SKIP_EXTENSIONS.has(extname(entry.name).toLowerCase())) continue;
-        if (!isReviewablePath(entry.name)) continue;
-        if (isIgnored(fullPath)) continue;
+        const relPath = rel(fullPath);
+        if (SKIP_FILES.has(entry.name)) {
+          skipped.push({ path: relPath, reason: "skip-file" });
+          continue;
+        }
+        if (isSensitivePath(fullPath)) {
+          skipped.push({ path: relPath, reason: "secret" });
+          continue;
+        }
+        if (SKIP_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+          skipped.push({ path: relPath, reason: "binary" });
+          continue;
+        }
+        if (!isReviewablePath(entry.name)) {
+          skipped.push({ path: relPath, reason: "non-reviewable" });
+          continue;
+        }
+        if (isIgnored(fullPath)) {
+          skipped.push({ path: relPath, reason: "gitignored" });
+          continue;
+        }
 
-        const file = readFileForReview(fullPath);
-        if (file) {
-          file.path = relative(dirPath, fullPath);
-          files.push(file);
+        const scan = scanFileForReview(fullPath, relPath);
+        if (scan.ok) {
+          files.push(scan.file);
+        } else {
+          skipped.push(scan.skip);
         }
       }
     }
   }
 
   walk(dirPath);
-  return files;
+  return { files, skipped, truncated };
+}
+
+/**
+ * Walk a directory and collect files for review.
+ * Respects .gitignore, skips binaries and known non-code dirs.
+ */
+export function collectFiles(dirPath: string): ReviewFile[] {
+  return collectFilesDetailed(dirPath).files;
 }

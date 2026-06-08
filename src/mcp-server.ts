@@ -20,46 +20,53 @@ import { resolve } from "node:path";
 import { statSync } from "node:fs";
 import { submitRoast, submitTool, checkEntitlements, type ToolName } from "./utils/api.js";
 import { getDeviceId, getEmail } from "./utils/config.js";
-import { readFileForReview, collectFiles, type ReviewFile } from "./utils/files.js";
+import { scanFileForReview, collectFilesDetailed, type ReviewFile, type SkippedFile } from "./utils/files.js";
+import { formatManifestMarkdown } from "./utils/dryrun.js";
 
 /** Sally only reads code and calls her backend — she never modifies the user's files. */
 const SALLY_ANNOTATIONS = { readOnlyHint: true, openWorldHint: true } as const;
 
 /**
- * Resolve review files from inline `files` or from `paths`.
- * Paths are read locally with the same safety as the CLI: binaries, oversized
- * files, and common secret files (.env, keys, certs) are skipped.
+ * Resolve review files from inline `files` or from `paths`, also reporting which
+ * paths were held back and why. Paths are read locally with the same safety as
+ * the CLI: binaries, oversized files, and common secret files (.env, keys,
+ * certs) are skipped — and the preview surfaces exactly that.
  */
-function resolveReviewFiles(
+function resolveReviewFilesDetailed(
   files: ReviewFile[] | undefined,
   paths: string[] | undefined,
-): ReviewFile[] {
-  if (files && files.length > 0) return files;
-  if (!paths || paths.length === 0) return [];
+): { files: ReviewFile[]; skipped: SkippedFile[] } {
+  if (files && files.length > 0) return { files, skipped: [] };
+  if (!paths || paths.length === 0) return { files: [], skipped: [] };
 
   const collected: ReviewFile[] = [];
+  const skipped: SkippedFile[] = [];
   for (const p of paths) {
     const resolved = resolve(p);
     let stat;
     try {
       stat = statSync(resolved);
     } catch {
-      continue; // path doesn't exist — skip it
+      skipped.push({ path: p, reason: "unreadable", detail: "path not found" });
+      continue;
     }
     if (stat.isDirectory()) {
-      collected.push(...collectFiles(resolved));
+      const result = collectFilesDetailed(resolved);
+      collected.push(...result.files);
+      skipped.push(...result.skipped);
     } else if (stat.isFile()) {
-      const file = readFileForReview(resolved);
-      if (file) collected.push(file);
+      const scan = scanFileForReview(resolved, p);
+      if (scan.ok) collected.push(scan.file);
+      else skipped.push(scan.skip);
     }
   }
-  return collected;
+  return { files: collected, skipped };
 }
 
 const server = new McpServer(
   {
     name: "cynical-sally",
-    version: "0.3.1",
+    version: "0.4.0",
   },
   {
     instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
@@ -108,11 +115,31 @@ server.registerTool(
         ),
       lang: z.string().default("en").describe("Response language code"),
       tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
+      preview: z
+        .boolean()
+        .default(false)
+        .describe(
+          "Dry run: return exactly what WOULD be sent (file list, byte sizes, token estimates, SHA-256 hashes, and which files were skipped and why) and send NOTHING to the backend. Use this when the user wants to verify what leaves their machine before roasting.",
+        ),
     },
     annotations: SALLY_ANNOTATIONS,
   },
-  async ({ paths, files, mode, lang, tone }, extra) => {
-    const reviewFiles = resolveReviewFiles(files, paths);
+  async ({ paths, files, mode, lang, tone, preview }, extra) => {
+    const { files: reviewFiles, skipped } = resolveReviewFilesDetailed(files, paths);
+
+    // ── Preview / dry run: report what would be sent, send nothing ──────
+    if (preview) {
+      if (reviewFiles.length === 0 && skipped.length === 0) {
+        return {
+          content: [{ type: "text", text: "Nothing to preview — pass `paths` or `files`." }],
+          isError: true,
+        };
+      }
+      return {
+        content: [{ type: "text", text: formatManifestMarkdown(reviewFiles, skipped, { mode }) }],
+      };
+    }
+
     if (reviewFiles.length === 0) {
       return {
         content: [
