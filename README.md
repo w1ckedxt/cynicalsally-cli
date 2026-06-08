@@ -52,17 +52,33 @@ npx @cynicalsally/cli roast ./src/
 
 **Requirements:** Node.js 18+
 
-## Privacy Notes
+## See exactly what leaves your machine
 
-- Directory scans and repo reviews send selected code to the Sally backend for analysis.
-- Only review code you are allowed to upload.
-- Sensitive files such as `.env`, SSH keys, certs, and common credential files are skipped, but you should still avoid scanning secrets on purpose.
-- Local reports and cached results may be written to `.sally/` in your project or `~/.sally/` on your machine.
-- Add `.sally/` to your `.gitignore` and do not commit review artifacts.
+Sending code to a server you don't control deserves more than "trust me." So Sally lets you **verify it instead**:
+
+```bash
+sally roast --dry-run ./src/
+```
+
+`--dry-run` collects everything *as if* it were about to roast — then sends **nothing**. Instead it prints the exact payload: every file path, byte size, and token estimate; which files were held back and **why** (`.env`, keys, certs, binaries, `.gitignore` matches, size limits); and writes a local **SHA-256 receipt** to `.sally/` so you can verify byte-for-byte what *would* have been uploaded.
+
+```text
+WOULD SEND 3 files · 91 B · ~24 tokens (est.)
+  src/app.ts        36 B   ~9 tok   68a3be428746…
+
+HELD BACK 2 items — kept on your machine
+  ✖ secret (2) — looks like a secret — never leaves your machine
+      .env
+      server.key
+```
+
+Secret files (`.env`, SSH keys, certs, credential files) are skipped **on your machine before anything is sent** — verify it yourself with `--dry-run`. Only review code you're allowed to upload. Local reports land in `.sally/` — add it to your `.gitignore`:
 
 ```gitignore
 .sally/
 ```
+
+See [Privacy & Security](#privacy--security) below for the full data-flow.
 
 ## Quick Start
 
@@ -89,6 +105,12 @@ sally roast ./src/ -m full_truth
 
 # Run deep analysis in the background (OS notification when done)
 sally roast ./src/ -m full_truth --bg
+
+# See exactly what would be sent — and send nothing
+sally roast --dry-run ./src/
+
+# Get a shareable roast card (saved to .sally/)
+sally roast ./src/ --card
 ```
 
 ## Roast Options
@@ -105,6 +127,8 @@ sally roast [paths...] [options]
   --fail-under <score>  Exit code 1 if quality score is below threshold
   --ci                  CI mode: compact output, exit codes
   --bg                  Run Full Truth in background, get OS notification when done
+  --dry-run             Print the exact payload (files, sizes, tokens, SHA-256) and send NOTHING
+  --card                Print + save a shareable roast card after the review
 ```
 
 ---
@@ -332,13 +356,15 @@ sally upgrade   # Unlock the Full Suite
 
 ## Privacy & Security
 
-Your code is yours. Here's exactly what happens to it:
+Your code is yours. Don't take our word for it — run `sally roast --dry-run` and see the exact payload before anything is sent. Here's what happens to it:
 
+- **Verify before you send.** `--dry-run` prints every file, size, token estimate, and a SHA-256 receipt of exactly what *would* be uploaded — and sends nothing. The MCP `sally_roast` tool has the same `preview` mode.
 - **Sent only to be reviewed.** The files you choose are transmitted over HTTPS and processed in real-time to generate the review — that's the only reason they leave your machine.
-- **Not stored.** Your source files are processed in memory and discarded after analysis. We keep the review (score, issues), not your source code.
+- **Never written to disk, logs, or analytics.** Your source code is processed in memory and discarded after analysis. It is never persisted to a database, never written to application logs or error traces, and never sent to any third-party APM or analytics. We keep the review (score, issues), not your source.
 - **Never trained on, sold, or shared.** Analysis runs through Anthropic's API, which doesn't train on submitted content.
-- **Only what you point at.** Sally doesn't browse your repo, read files you didn't give her, or scan your projects or plans. Secret files (`.env`, keys, certs) are skipped on your machine before anything is sent.
+- **Only what you point at.** Sally doesn't browse your repo, read files you didn't give her, or scan your projects or plans. Secret files (`.env`, keys, certs, credential files) are skipped on your machine *before anything is sent* — and `--dry-run` shows you exactly which ones.
 - **Anonymous by default.** Reviews are tied to a random device ID, not your identity — until you link an email for Full Suite. Config stored locally at `~/.sally/config.json`.
+- **Signed releases.** npm packages are published with [provenance](https://docs.npmjs.com/generating-provenance-statements) — a cryptographic, public attestation linking each release to the exact source commit and CI build that produced it.
 
 For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
 
