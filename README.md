@@ -366,7 +366,7 @@ Your code is yours. Don't take our word for it — run `sally roast --dry-run` a
 - **Anonymous by default.** Reviews are tied to a random device ID, not your identity — until you link an email for Full Suite. Config stored locally at `~/.sally/config.json`.
 - **Signed releases.** npm packages are published with [provenance](https://docs.npmjs.com/generating-provenance-statements) — a cryptographic, public attestation linking each release to the exact source commit and CI build that produced it.
 
-For full details: [cynicalsally.com/privacy](https://cynicalsally.com/privacy)
+Full engineering detail — data-flow diagram, what's retained, subprocessors, and log policy — is in [docs/PRIVACY.md](docs/PRIVACY.md). User-facing summary: [cynicalsally.com/privacy](https://cynicalsally.com/privacy).
 
 ## Contributing
 

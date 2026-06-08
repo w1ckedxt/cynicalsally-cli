@@ -1,0 +1,41 @@
+# DRAFT — scaffold only. Move to the root of cynicalsally/sally-action to publish.
+# Blocked on backend headless-auth (Fase 1 in plan/sally-action.md).
+name: "Cynical Sally"
+description: "Brutally honest AI code review on every PR — score, issues, and one savage line."
+author: "Thomas Geelens"
+branding:
+  icon: "zap"
+  color: "purple"
+
+inputs:
+  sally-key:
+    description: "API key for headless backend auth (store in repo secrets as SALLY_KEY). Required once Fase 1 lands."
+    required: true
+  mode:
+    description: "Review mode: quick or full_truth (full_truth needs Full Suite)."
+    required: false
+    default: "quick"
+  fail-under:
+    description: "Fail the job if Sally's score is below this number. Empty = never fail."
+    required: false
+    default: ""
+  comment:
+    description: "Post (and update) a PR comment with the verdict."
+    required: false
+    default: "true"
+  only-changed:
+    description: "Review only the PR's changed files instead of the whole repo."
+    required: false
+    default: "true"
+
+outputs:
+  score:
+    description: "Sally's score, 0–10."
+  issue-count:
+    description: "Number of issues Sally found."
+  comment-url:
+    description: "URL of the posted/updated PR comment."
+
+runs:
+  using: "node20"
+  main: "dist/index.js" # bundled from src/ with @vercel/ncc before release
