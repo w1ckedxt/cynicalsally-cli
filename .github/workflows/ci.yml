@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check & build
+        run: npm run build
+
+      - name: Validate server.json is in sync with package.json
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          PKG_MCP_NAME=$(node -p "require('./package.json').mcpName")
+          SRV_VERSION=$(node -p "require('./server.json').version")
+          SRV_NAME=$(node -p "require('./server.json').name")
+          SRV_PKG_VERSION=$(node -p "require('./server.json').packages[0].version")
+          echo "package.json: $PKG_MCP_NAME @ $PKG_VERSION"
+          echo "server.json:  $SRV_NAME @ $SRV_VERSION (pkg $SRV_PKG_VERSION)"
+          test "$PKG_VERSION" = "$SRV_VERSION" || { echo "::error::server.json version != package.json version"; exit 1; }
+          test "$PKG_VERSION" = "$SRV_PKG_VERSION" || { echo "::error::server.json package version != package.json version"; exit 1; }
+          test "$PKG_MCP_NAME" = "$SRV_NAME" || { echo "::error::server.json name != package.json mcpName"; exit 1; }
