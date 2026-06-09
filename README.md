@@ -111,6 +111,9 @@ sally roast --dry-run ./src/
 
 # Get a shareable roast card (saved to .sally/)
 sally roast ./src/ --card
+
+# Publish a share link — only the score + sneer go public, never your code
+sally roast ./src/ --share
 ```
 
 ## Roast Options
@@ -129,6 +132,7 @@ sally roast [paths...] [options]
   --bg                  Run Full Truth in background, get OS notification when done
   --dry-run             Print the exact payload (files, sizes, tokens, SHA-256) and send NOTHING
   --card                Print + save a shareable roast card after the review
+  --share               Create a public share link (cynicalsally.com/card/…) — score + sneer only, never code
 ```
 
 ---
@@ -363,6 +367,7 @@ Your code is yours. Don't take our word for it — run `sally roast --dry-run` a
 - **Never written to disk, logs, or analytics.** Your source code is processed in memory and discarded after analysis. It is never persisted to a database, never written to application logs or error traces, and never sent to any third-party APM or analytics. We keep the review (score, issues), not your source.
 - **Never trained on, sold, or shared.** Analysis runs through Anthropic's API, which doesn't train on submitted content.
 - **Only what you point at.** Sally doesn't browse your repo, read files you didn't give her, or scan your projects or plans. Secret files (`.env`, keys, certs, credential files) are skipped on your machine *before anything is sent* — and `--dry-run` shows you exactly which ones.
+- **Sharing is opt-in, and never includes code.** Nothing is ever published unless you pass `--share` — and even then the public card contains only the score and Sally's one-liner.
 - **Anonymous by default.** Reviews are tied to a random device ID, not your identity — until you link an email for Full Suite. Config stored locally at `~/.sally/config.json`.
 - **Signed releases.** npm packages are published with [provenance](https://docs.npmjs.com/generating-provenance-statements) — a cryptographic, public attestation linking each release to the exact source commit and CI build that produced it.
 

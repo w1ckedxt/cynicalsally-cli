@@ -11,6 +11,8 @@ interface SallyConfig {
   email?: string;
   tools_hint_shown?: boolean;
   privacy_notice_shown?: boolean;
+  roast_count?: number;
+  star_hint_shown?: boolean;
 }
 
 function ensureConfigDir(): void {
@@ -82,6 +84,24 @@ export function showPrivacyNotice(): boolean {
   const config = readConfig();
   if (config.privacy_notice_shown) return false;
   config.privacy_notice_shown = true;
+  writeConfig(config);
+  return true;
+}
+
+/** Count a completed roast. Returns the new all-time total for this install. */
+export function bumpRoastCount(): number {
+  const config = readConfig();
+  config.roast_count = (config.roast_count ?? 0) + 1;
+  writeConfig(config);
+  return config.roast_count;
+}
+
+/** Show the star-the-repo nudge once, after the user has a few roasts in. */
+export function showStarHint(roastCount: number): boolean {
+  if (roastCount < 3) return false;
+  const config = readConfig();
+  if (config.star_hint_shown) return false;
+  config.star_hint_shown = true;
   writeConfig(config);
   return true;
 }

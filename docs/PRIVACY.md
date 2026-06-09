@@ -70,6 +70,7 @@ the hashes yourself. The MCP `sally_roast` tool exposes the same thing via its
 | Review result you see (score, issues) | Returned to you | your terminal / `.sally/` (local) | `full_truth` reviews are saved locally to `.sally/` on *your* machine. |
 | Review **metadata** | Yes | backend events store | Random device ID, mode (`quick`/`full_truth`), **file count** (not paths or contents), score, model, duration, and request country. Used for quota and product analytics. |
 | Repo **verdict** (`sally verdict`) | Yes | backend | For the public badge feature only: stores Sally's *analysis* (score, label, roast text) and the repo name you asked her to judge — **never your source code**. |
+| Share card (`roast --share`) | Yes — **opt-in** | backend | Only created when you pass `--share`. Stores the score, Sally's one-liner, and (if available) your repo name on a public card page — **never your source code**. |
 | Account link | Only if you log in | backend | Email ↔ device, for Full Suite. Anonymous until you run `sally login`. |
 | Local config | Yes | `~/.sally/config.json` | Random device ID + (if linked) your email. Lives on your machine. |
 

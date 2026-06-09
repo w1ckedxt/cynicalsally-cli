@@ -21,7 +21,7 @@ function scoreBar(score: number): string {
 }
 
 /** One savage line — the sneer if we have it, else the opening of the roast. */
-function savageLine(response: RoastResponse): string {
+export function savageLine(response: RoastResponse): string {
   const sneer = response.voice.hardest_sneer?.trim();
   if (sneer) return sneer;
   const firstSentence = response.voice.roast?.split(/(?<=[.!?])\s/)[0]?.trim();

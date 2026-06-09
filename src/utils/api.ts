@@ -207,6 +207,44 @@ export async function submitVerdict(params: VerdictRequest): Promise<VerdictResp
   return (await res.json()) as VerdictResponse;
 }
 
+// ---------------------------------------------------------------------------
+// Share card
+// ---------------------------------------------------------------------------
+
+export interface ShareCardRequest {
+  sneer: string;
+  score?: number;
+  lang?: string;
+  subject?: string;
+}
+
+export interface ShareCardResponse {
+  id: string;
+  url: string;
+  imageUrl?: string;
+}
+
+/** Create a public share card (cynicalsally.com/card/<id>). Sends only the sneer + score — never code. */
+export async function createShareCard(params: ShareCardRequest): Promise<ShareCardResponse> {
+  const deviceId = getDeviceId();
+  const url = `${API_BASE}/api/v1/card`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...params, inputType: "code", source: "cli", deviceId }),
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    const message = (body as { error?: string }).error || `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return (await res.json()) as ShareCardResponse;
+}
+
 /** Request magic link login */
 export async function requestMagicLink(email: string): Promise<{ sent: boolean; message?: string; error?: string }> {
   const deviceId = getDeviceId();

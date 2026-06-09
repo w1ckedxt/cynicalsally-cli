@@ -4,15 +4,15 @@ import ora from "ora";
 import { resolve } from "node:path";
 import { statSync } from "node:fs";
 import { scanFileForReview, collectFilesDetailed } from "../utils/files.js";
-import { submitRoast } from "../utils/api.js";
+import { submitRoast, createShareCard } from "../utils/api.js";
 import { displayRoast, printSally, handleApiError } from "../utils/output.js";
 import { saveReport } from "../utils/report.js";
 import { printDryRun } from "../utils/dryrun.js";
-import { printRoastCard } from "../utils/card.js";
+import { printRoastCard, savageLine } from "../utils/card.js";
 import { askBackground, spawnBackgroundWorker, saveResult, sendNotification } from "../utils/background.js";
 import { getFlavor } from "../utils/flavor.js";
-import { showToolsHint, showPrivacyNotice, getEmail } from "../utils/config.js";
-import { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles } from "../utils/git.js";
+import { showToolsHint, showPrivacyNotice, getEmail, bumpRoastCount, showStarHint } from "../utils/config.js";
+import { isGitRepo, getStagedChanges, getUnstagedChanges, getLastCommitDiff, getBranchDiff, parseDiffToFiles, getGitHubRemote } from "../utils/git.js";
 import type { ReviewFile, SkippedFile } from "../utils/files.js";
 
 export const roastCommand = new Command("roast")
@@ -29,6 +29,7 @@ export const roastCommand = new Command("roast")
   .option("--bg", "Run Full Truth in the background — get notified when done")
   .option("--dry-run", "Show exactly what would be sent (files, sizes, tokens, SHA-256) and send NOTHING")
   .option("--card", "Print a shareable roast card after the review")
+  .option("--share", "Create a public share link for this roast — only the score + sneer go public, never your code")
   .option("--bg-worker")
   .action(async (paths: string[], options) => {
     // ── Collect files ──────────────────────────────────────────────────
@@ -245,6 +246,23 @@ export const roastCommand = new Command("roast")
           printRoastCard(response);
         }
 
+        // Public share link (--share) — publishes only the score + sneer, never code
+        if (options.share) {
+          try {
+            const remote = getGitHubRemote();
+            const shared = await createShareCard({
+              sneer: savageLine(response),
+              score: response.data.score,
+              lang: response.meta.lang,
+              subject: remote ? `${remote.owner}/${remote.repo}` : undefined,
+            });
+            console.log(chalk.gray("  🔗 Share your shame: ") + chalk.cyan(shared.url));
+            console.log();
+          } catch {
+            console.log(chalk.yellow("  Couldn't create a share link right now.") + chalk.gray(" The roast still happened. You witnessed it.\n"));
+          }
+        }
+
         // First-run privacy reassurance (once per install)
         if (showPrivacyNotice()) {
           console.log();
@@ -269,6 +287,13 @@ export const roastCommand = new Command("roast")
             console.log(chalk.gray("  💾 ") + chalk.gray("Saved this verdict to ") + chalk.cyan(savedPath));
             console.log();
           }
+        }
+
+        // Star nudge — once per install, after the third roast
+        if (showStarHint(bumpRoastCount())) {
+          console.log(chalk.gray("  Three roasts in and you keep coming back. Sweet. Star the repo"));
+          console.log(chalk.gray("  so I can pretend I'm popular: ") + chalk.cyan("github.com/w1ckedxt/cynical-sally"));
+          console.log();
         }
       }
 
