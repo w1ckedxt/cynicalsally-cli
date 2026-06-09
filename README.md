@@ -26,13 +26,14 @@
 
 Your AI pair programmer is lying to you. Sally isn't.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="sally roast — a real review, live in the terminal" width="800" />
+</p>
+
 She's the senior engineer your code hoped it'd never meet. Scores from 0 to 10, real issues backed by evidence, and fixes you can actually use.
 
 Works as a CLI tool and as an MCP server in [Claude Code](https://claude.ai/claude-code), [Cursor](https://cursor.com), and [Windsurf](https://windsurf.com).
 
-<p align="center">
-  <img src="assets/SallyInTerminal.png" alt="Sally in your terminal" width="500" />
-</p>
 <p align="center">
   <img src="assets/SallyRoast1.png" alt="Sally code review with score and issues" width="500" />
   <img src="assets/SallyRoast2.png" alt="Sally actionable fixes and verdict" width="500" />
