@@ -68,7 +68,7 @@ function resolveReviewFilesDetailed(
 const server = new McpServer(
   {
     name: "cynical-sally",
-    version: "0.4.0",
+    version: "0.5.0",
   },
   {
     instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
