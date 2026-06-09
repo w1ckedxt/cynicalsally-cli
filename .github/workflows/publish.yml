@@ -22,6 +22,10 @@ jobs:
           node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
 
+      # Trusted publishing (npm OIDC) requires npm >= 11.5.1
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
@@ -34,10 +38,11 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           test "$TAG_VERSION" = "$PKG_VERSION" || { echo "::error::tag $TAG_VERSION != package.json $PKG_VERSION"; exit 1; }
 
+      # npm auth via trusted publishing (OIDC) — configure once on npmjs.com:
+      # package @cynicalsally/cli → Settings → Trusted Publisher → GitHub Actions,
+      # repo w1ckedxt/cynical-sally, workflow publish.yml. No NPM_TOKEN needed.
       - name: Publish to npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install mcp-publisher
         run: |
