@@ -18,10 +18,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { resolve } from "node:path";
 import { statSync } from "node:fs";
-import { submitRoast, submitTool, checkEntitlements, type ToolName } from "./utils/api.js";
+import { submitRoast, submitTool, checkEntitlements, createShareCard, type ToolName } from "./utils/api.js";
 import { getDeviceId, getEmail } from "./utils/config.js";
 import { scanFileForReview, collectFilesDetailed, type ReviewFile, type SkippedFile } from "./utils/files.js";
 import { formatManifestMarkdown } from "./utils/dryrun.js";
+import { savageLine } from "./utils/card.js";
+import { getGitHubRemote } from "./utils/git.js";
 
 /** Sally only reads code and calls her backend — she never modifies the user's files. */
 const SALLY_ANNOTATIONS = { readOnlyHint: true, openWorldHint: true } as const;
@@ -121,10 +123,16 @@ server.registerTool(
         .describe(
           "Dry run: return exactly what WOULD be sent (file list, byte sizes, token estimates, SHA-256 hashes, and which files were skipped and why) and send NOTHING to the backend. Use this when the user wants to verify what leaves their machine before roasting.",
         ),
+      share: z
+        .boolean()
+        .default(false)
+        .describe(
+          "Publish a public share card and include the link — the card shows only the score and Sally's one-liner, never code. Only use when the user explicitly asks to share the roast.",
+        ),
     },
     annotations: SALLY_ANNOTATIONS,
   },
-  async ({ paths, files, mode, lang, tone, preview }, extra) => {
+  async ({ paths, files, mode, lang, tone, preview, share }, extra) => {
     const { files: reviewFiles, skipped } = resolveReviewFilesDetailed(files, paths);
 
     // ── Preview / dry run: report what would be sent, send nothing ──────
@@ -223,6 +231,22 @@ server.registerTool(
       }
       if (response.voice.hardest_sneer) {
         parts.push(`> 🔥 ${response.voice.hardest_sneer}\n`);
+      }
+
+      // Public share card (opt-in) — publishes only the score + sneer, never code
+      if (share) {
+        try {
+          const remote = getGitHubRemote();
+          const shared = await createShareCard({
+            sneer: savageLine(response),
+            score: response.data.score,
+            lang: response.meta.lang,
+            subject: remote ? `${remote.owner}/${remote.repo}` : undefined,
+          });
+          parts.push(`🔗 Public share card (score + one-liner only, no code): ${shared.url}\n`);
+        } catch {
+          parts.push(`(Couldn't create a share card right now — the roast above still stands.)\n`);
+        }
       }
 
       parts.push(`\n*${response.meta.mode === "full_truth" ? "Full Truth" : "Quick Roast"} • ${response.meta.files_reviewed} files • ${response.meta.model}*`);
