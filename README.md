@@ -18,7 +18,7 @@
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/v/@cynicalsally/cli.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@cynicalsally/cli"><img src="https://img.shields.io/npm/dm/@cynicalsally/cli.svg" alt="npm downloads" /></a>
   <a href="https://registry.modelcontextprotocol.io/?search=cynicalsally"><img src="https://img.shields.io/badge/MCP-Registry-8a2be2.svg" alt="MCP Registry" /></a>
-  <a href="https://glama.ai/mcp/servers/lc9ab9mx51"><img src="https://glama.ai/mcp/servers/lc9ab9mx51/badges/score.svg" alt="Glama score" /></a>
+  <a href="https://glama.ai/mcp/servers/w1ckedxt/cynical-sally"><img src="https://glama.ai/mcp/servers/w1ckedxt/cynical-sally/badges/score.svg" alt="Glama score" /></a>
   <a href="https://github.com/w1ckedxt/cynical-sally/blob/main/LICENSE"><img src="https://img.shields.io/github/license/w1ckedxt/cynical-sally.svg" alt="license" /></a>
 </p>
 
@@ -276,6 +276,8 @@ Gate your pipeline on code quality:
 ## MCP Server
 
 Sally works as an MCP server inside **Claude Code**, **Cursor**, and **Windsurf**.
+
+<a href="https://glama.ai/mcp/servers/w1ckedxt/cynical-sally"><img src="https://glama.ai/mcp/servers/w1ckedxt/cynical-sally/badges/card.svg" alt="Cynical Sally MCP server on Glama" width="380" /></a>
 
 ### Claude Code
 
