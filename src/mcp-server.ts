@@ -68,7 +68,7 @@ function resolveReviewFilesDetailed(
 const server = new McpServer(
   {
     name: "cynical-sally",
-    version: "0.5.0",
+    version: "0.5.1",
   },
   {
     instructions: `You have access to Cynical Sally — a brutally honest, sharp-witted senior engineer. When the user mentions "Sally", asks Sally something, says "vraag Sally", "ask Sally", or wants Sally's opinion, use the appropriate tool:
@@ -92,7 +92,7 @@ server.registerTool(
   "sally_roast",
   {
     description:
-      "Get a brutally honest code review from Cynical Sally — a 0–10 score, real issues backed by evidence, and fixes you can actually use. Use this whenever the user wants code reviewed, critiqued, roasted, or asks 'what does Sally think'. Pass `paths` (files or directories Sally reads herself, skipping binaries and secrets) OR `files` with inline content. quick = a fast, sharp take; full_truth = a deep dive with ranked issues and actionable fixes.",
+      "Get a brutally honest code review from Cynical Sally — a 0–10 score, real issues backed by evidence, and fixes you can actually use. Use this whenever the user wants code reviewed, critiqued, roasted, or asks 'what does Sally think'. Pass `paths` (files or directories Sally reads herself, skipping binaries and secrets) OR `files` with inline content. quick = a fast, sharp take (90 free per month per device); full_truth = a deep dive with ranked issues and actionable fixes. Sends the selected code to the Cynical Sally backend for analysis — never stored, never used for training; set `preview` to true to see exactly what would be sent without sending anything. Read-only: never modifies files. Returns markdown with the score, verdict, top issues, and fixes.",
     inputSchema: {
       paths: z
         .array(z.string())
@@ -115,8 +115,8 @@ server.registerTool(
         .describe(
           "quick = fast roast; full_truth = deep dive with ranked issues + actionable fixes (1 free per month, then Full Suite)",
         ),
-      lang: z.string().default("en").describe("Response language code"),
-      tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's tone"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
+      tone: z.enum(["cynical", "neutral", "professional"]).default("cynical").describe("Sally's delivery: cynical (default, full sass), neutral, or professional — same findings, different wording."),
       preview: z
         .boolean()
         .default(false)
@@ -361,10 +361,10 @@ server.registerTool(
   "sally_explain",
   {
     description:
-      "Have Sally explain what a piece of code actually does, in plain English — no hand-holding, just the cold, clear truth. Use when the user wants a snippet or file explained or doesn't understand what some code does.",
+      "Have Sally explain what a piece of code actually does, in plain English — no hand-holding, just the cold, clear truth. Use when the user wants a snippet or file explained, asks 'what does this do', or inherited code nobody documented. Sends only the provided code to the Cynical Sally backend — never stored, never used for training. Read-only: never modifies files. Returns a markdown explanation in Sally's voice. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      content: z.string().describe("Code to explain"),
-      lang: z.string().default("en").describe("Response language code"),
+      content: z.string().describe("The code to explain — a snippet, function, or whole file, as plain text"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -377,10 +377,10 @@ server.registerTool(
   "sally_review_pr",
   {
     description:
-      "Sally reviews a PR diff like a senior engineer with time, opinions, and no reason to be polite — catching what automated tools miss. Use when the user wants a pull request or unified diff reviewed.",
+      "Sally reviews a PR diff like a senior engineer with time, opinions, and no reason to be polite — catching what automated tools miss. Use when the user wants a pull request, commit, or unified diff reviewed before merging. Sends only the provided diff to the Cynical Sally backend — never stored, never used for training. Read-only: never modifies files. Returns a markdown review with a verdict and concrete findings. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      diff: z.string().describe("PR diff text (unified diff format)"),
-      lang: z.string().default("en").describe("Response language code"),
+      diff: z.string().describe("The pull request changes as a unified diff (e.g. output of `git diff main` or `gh pr diff`)"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -393,10 +393,10 @@ server.registerTool(
   "sally_refactor",
   {
     description:
-      "Sally proposes concrete refactors with before/after code and explains why the original would haunt your 3am on-call rotation. Use when the user wants code improved, cleaned up, or refactored.",
+      "Sally proposes concrete refactors with before/after code and explains why the original would haunt your 3am on-call rotation. Use when the user wants code improved, cleaned up, simplified, or modernized. Sends only the provided code to the Cynical Sally backend — never stored, never used for training. Read-only: suggestions come back as markdown, nothing is applied to files. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      content: z.string().describe("Code that needs refactoring"),
-      lang: z.string().default("en").describe("Response language code"),
+      content: z.string().describe("The code to refactor — a function, class, or file, as plain text"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -409,10 +409,10 @@ server.registerTool(
   "sally_brainstorm",
   {
     description:
-      "Pitch an idea or architecture and Sally names the three ways it falls apart at scale — cheaper than a post-mortem. Use when the user wants feedback on an idea, approach, or design decision.",
+      "Pitch an idea or architecture and Sally names the three ways it falls apart at scale — cheaper than a post-mortem. Use when the user wants feedback on an idea, approach, design decision, or trade-off before building it. Sends only the provided description to the Cynical Sally backend — never stored, never used for training. Read-only: never modifies files. Returns a markdown verdict with risks and a bright side. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      description: z.string().describe("Description of the idea or approach"),
-      lang: z.string().default("en").describe("Response language code"),
+      description: z.string().describe("The idea, architecture, or approach to evaluate — from a few sentences to a full design sketch"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -425,10 +425,10 @@ server.registerTool(
   "sally_frontend",
   {
     description:
-      "Sally roasts frontend/UI code — wasteful re-renders, load-bearing z-index, accessibility sins, and questionable component design. Use when the user wants HTML/CSS/JSX/Vue/Svelte or UI code reviewed.",
+      "Sally roasts frontend/UI code — wasteful re-renders, load-bearing z-index, accessibility sins, and questionable component design. Use for HTML/CSS/JSX/Vue/Svelte or other UI code; for general-purpose code use sally_roast instead. Sends only the provided code to the Cynical Sally backend — never stored, never used for training. Read-only: never modifies files. Returns markdown with categorized issues and fixes. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      content: z.string().describe("Frontend code (HTML/CSS/JSX/Vue/Svelte/etc)"),
-      lang: z.string().default("en").describe("Response language code"),
+      content: z.string().describe("The frontend/UI code to review — HTML, CSS, JSX/TSX, Vue, Svelte, or similar, as plain text"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -441,10 +441,10 @@ server.registerTool(
   "sally_marketing",
   {
     description:
-      "Sally reviews marketing copy, branding, and landing-page text before your customers do it less kindly. Use when the user wants copy, taglines, or brand text critiqued and rewritten.",
+      "Sally reviews marketing copy, branding, and landing-page text before your customers do it less kindly. Use when the user wants copy, taglines, or brand messaging critiqued — returns before/after rewrites with the reasoning. Sends only the provided text to the Cynical Sally backend — never stored, never used for training. Read-only: never modifies files. Premium tool: one free use per month on the free tier, unlimited with Full Suite.",
     inputSchema: {
-      content: z.string().describe("Marketing text, copy, or branding description"),
-      lang: z.string().default("en").describe("Response language code"),
+      content: z.string().describe("The marketing copy to review — taglines, landing-page text, product descriptions, or brand messaging"),
+      lang: z.string().default("en").describe("ISO 639-1 language code for Sally's response (e.g. 'en', 'nl'). Defaults to English."),
     },
     annotations: SALLY_ANNOTATIONS,
   },
@@ -456,7 +456,8 @@ server.registerTool(
 server.registerTool(
   "sally_usage",
   {
-    description: "Check your Sally quota and account status",
+    description:
+      "Check the user's Cynical Sally quota and account status: tier (Free or Full Suite), remaining quick roasts and Full Truth reviews this month, per-tool premium trials, and the email linked to this device. Use when the user asks how many roasts they have left, what plan they're on, or why a Sally tool just hit a quota wall. Takes no parameters. Sends only the anonymous device ID to the Cynical Sally backend — no code, no personal data. Read-only: never modifies files. Returns a markdown account summary.",
     annotations: SALLY_ANNOTATIONS,
   },
   async () => {
