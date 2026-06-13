@@ -19,6 +19,10 @@ import {
 } from "./commands/tools.js";
 import { verdictCommand } from "./commands/verdict.js";
 import { printSally } from "./utils/output.js";
+import { trackInstall } from "./utils/install.js";
+
+// One-time, fire-and-forget install ping (no-op after the first successful run).
+trackInstall();
 
 const program = new Command();
 

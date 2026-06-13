@@ -13,6 +13,7 @@ interface SallyConfig {
   privacy_notice_shown?: boolean;
   roast_count?: number;
   star_hint_shown?: boolean;
+  install_pinged?: boolean;
 }
 
 function ensureConfigDir(): void {
@@ -94,6 +95,18 @@ export function bumpRoastCount(): number {
   config.roast_count = (config.roast_count ?? 0) + 1;
   writeConfig(config);
   return config.roast_count;
+}
+
+/** Whether the one-time install ping has already been sent for this install. */
+export function hasInstallPinged(): boolean {
+  return !!readConfig().install_pinged;
+}
+
+/** Mark the install ping as sent so it never fires again for this install. */
+export function markInstallPinged(): void {
+  const config = readConfig();
+  config.install_pinged = true;
+  writeConfig(config);
 }
 
 /** Show the star-the-repo nudge once, after the user has a few roasts in. */
