@@ -31,7 +31,7 @@ program
   .description(
     "Brutally honest code reviews.\nBecause 'You're absolutely right' is probably absolutely wrong."
   )
-  .version("0.5.1")
+  .version("0.5.2")
   .action(() => {
     // `sally` with no args → welcome message
     printSally();
